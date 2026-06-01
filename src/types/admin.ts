@@ -85,6 +85,8 @@ export interface AdminArticle {
   articleId: number;
   articleTypeId: number;
   userId: number;
+  authorNickname?: string;
+  authorEmail?: string;
   title: string;
   content: string;
   readCount: number | null;
@@ -109,10 +111,15 @@ export interface ReportGroup {
   targetType: string;
   targetId: number;
   reportCount: number;
+  unprocessedCount: number;
   firstReportedAt: string;
   lastReportedAt: string;
   topReason: string;
   targetPreview: TargetPreview;
+  isProcessed: boolean;
+  resolvedAction?: string;
+  resolveReason?: string;
+  processedAt?: string;
 }
 
 export interface ReportDetail {
@@ -121,6 +128,9 @@ export interface ReportDetail {
   reason: string;
   description?: string;
   reportedAt: string;
+  processedAt?: string;
+  resolvedAction?: string;
+  resolveReason?: string;
 }
 
 export interface AdminInquiry {
@@ -174,10 +184,20 @@ export interface AuditLog {
 }
 
 export interface PopularKeyword {
+  popularKeywordId: number;
   keyword: string;
   rank: number;
   rankChange: number;
-  searchCount: number;
+  searchCount: number | null;
+}
+
+export interface PopularKeywordUpdatePayload {
+  keyword?: string;
+  rank?: number;
+}
+
+export interface PopularKeywordDeletePayload {
+  reason?: string;
 }
 
 export interface SearchKeyword {
@@ -188,29 +208,6 @@ export interface SearchKeyword {
   updatedAt: string;
 }
 
-export interface PlaceType {
-  typeId: number;
-  typeName: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ArticleType {
-  articleTypeId: number;
-  articleType: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Board {
-  boardId: number;
-  boardName: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export type AdminUserStatus = 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
 
@@ -235,6 +232,15 @@ export interface AdminComment {
   isHidden: boolean;
   parentCommentId?: number;
   createdAt: string;
+  reportCount?: number;
+}
+
+export interface AdminCommentDetail extends AdminComment {
+  articleTitle?: string;
+  authorNickname?: string;
+  authorEmail?: string;
+  updatedAt?: string;
+  reportCount: number;
 }
 
 export interface PagedResponseDto<T> {

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { inquiriesApi } from "@/lib/api/inquiries";
 import { AdminInquiry, PageResponse } from "@/types/admin";
+import Pagination from "@/components/common/Pagination";
 
 const statusLabel: Record<string, string> = {
   "답변대기": "미처리",
@@ -128,18 +129,16 @@ export default function InquiryListClient() {
           </table>
         </div>
 
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-stroke px-4 py-3 dark:border-strokedark">
-            <span className="text-sm text-gray-500">
-              {page + 1} / {data.totalPages} 페이지 (총 {data.totalElements}건)
-            </span>
-            <div className="flex gap-2">
-              <button disabled={data.first} onClick={() => setPage((p) => p - 1)}
-                className="rounded border border-stroke px-3 py-1 text-sm disabled:opacity-40">이전</button>
-              <button disabled={data.last} onClick={() => setPage((p) => p + 1)}
-                className="rounded border border-stroke px-3 py-1 text-sm disabled:opacity-40">다음</button>
-            </div>
-          </div>
+        {data && data.totalPages > 0 && (
+          <Pagination
+            page={page}
+            totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            first={data.first}
+            last={data.last}
+            onPageChange={setPage}
+            itemLabel="건"
+          />
         )}
       </div>
 

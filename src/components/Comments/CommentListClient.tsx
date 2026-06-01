@@ -1,14 +1,29 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { articlesApi } from "@/lib/api/articles";
+import { commentsApi } from "@/lib/api/comments";
 import { usersApi } from "@/lib/api/users";
-import { AdminArticle, AdminUser, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
+import {
+  AdminComment,
+  AdminCommentDetail,
+  AdminUser,
+  PageResponse,
+  ReportDetail,
+} from "@/types/admin";
 
 const statusLabel: Record<string, string> = {
   ACTIVE: "활성",
   DELETED: "삭제됨",
+};
+
+const reasonLabel: Record<string, string> = {
+  SPAM: "스팸",
+  INAPPROPRIATE: "부적절",
+  VIOLENCE: "폭력",
+  COPYRIGHT: "저작권",
+  FALSE_INFO: "허위정보",
+  ETC: "기타",
 };
 
 const DEFAULT_AVATAR =
@@ -31,19 +46,20 @@ interface ToastState {
   type: "success" | "error";
 }
 
-export default function ArticleListClient() {
-  const [data, setData] = useState<PageResponse<AdminArticle> | null>(null);
+export default function CommentListClient() {
+  const [data, setData] = useState<PageResponse<AdminComment> | null>(null);
   const [page, setPage] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [isHidden, setIsHidden] = useState("");
+  const [isReported, setIsReported] = useState(false);
+  const [articleIdFilter, setArticleIdFilter] = useState("");
+  const [userIdFilter, setUserIdFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
-  const [detailModal, setDetailModal] = useState<AdminArticle | null>(null);
+  const [detailModal, setDetailModal] = useState<AdminCommentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [actionModal, setActionModal] = useState<ActionModalState>({
     open: false,
     title: "",
@@ -54,7 +70,12 @@ export default function ArticleListClient() {
   const [authorModalUserId, setAuthorModalUserId] = useState<number | null>(null);
   const [authorModalData, setAuthorModalData] = useState<AdminUser | null>(null);
   const [authorModalLoading, setAuthorModalLoading] = useState(false);
+  const [reportsModalCommentId, setReportsModalCommentId] = useState<number | null>(null);
+  const [reportsModalData, setReportsModalData] = useState<ReportDetail[] | null>(null);
+  const [reportsModalLoading, setReportsModalLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const articleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -92,15 +113,46 @@ export default function ArticleListClient() {
     setAuthorModalData(null);
   };
 
-  const load = (p: number, kw: string, st: string, ih: string) => {
+  const openReportsModal = async (commentId: number) => {
+    setReportsModalCommentId(commentId);
+    setReportsModalData(null);
+    setReportsModalLoading(true);
+    try {
+      const reports = await commentsApi.getCommentReports(commentId);
+      setReportsModalData(reports);
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : "신고 이력 로드 실패", "error");
+      setReportsModalData([]);
+    } finally {
+      setReportsModalLoading(false);
+    }
+  };
+
+  const closeReportsModal = () => {
+    setReportsModalCommentId(null);
+    setReportsModalData(null);
+  };
+
+  const load = (
+    p: number,
+    kw: string,
+    st: string,
+    ih: string,
+    ir: boolean,
+    aid: string,
+    uid: string,
+  ) => {
     setLoading(true);
-    articlesApi
-      .getArticles({
+    commentsApi
+      .getComments({
         page: p,
         size: 20,
         keyword: kw || undefined,
         status: st || undefined,
         isHidden: ih === "" ? undefined : ih === "true",
+        isReported: ir || undefined,
+        articleId: aid ? Number(aid) : undefined,
+        userId: uid ? Number(uid) : undefined,
       })
       .then(setData)
       .catch((e) => setError(e.message))
@@ -108,22 +160,40 @@ export default function ArticleListClient() {
   };
 
   useEffect(() => {
-    load(page, keyword, status, isHidden);
-  }, [page, status, isHidden]); // eslint-disable-line react-hooks/exhaustive-deps
+    load(page, keyword, status, isHidden, isReported, articleIdFilter, userIdFilter);
+  }, [page, status, isHidden, isReported]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeywordChange = (val: string) => {
     setKeyword(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(0);
-      load(0, val, status, isHidden);
+      load(0, val, status, isHidden, isReported, articleIdFilter, userIdFilter);
+    }, 300);
+  };
+
+  const handleArticleIdChange = (val: string) => {
+    setArticleIdFilter(val);
+    if (articleDebounceRef.current) clearTimeout(articleDebounceRef.current);
+    articleDebounceRef.current = setTimeout(() => {
+      setPage(0);
+      load(0, keyword, status, isHidden, isReported, val, userIdFilter);
+    }, 300);
+  };
+
+  const handleUserIdChange = (val: string) => {
+    setUserIdFilter(val);
+    if (userDebounceRef.current) clearTimeout(userDebounceRef.current);
+    userDebounceRef.current = setTimeout(() => {
+      setPage(0);
+      load(0, keyword, status, isHidden, isReported, articleIdFilter, val);
     }, 300);
   };
 
   const refreshDetail = async (id: number) => {
     setDetailLoading(true);
     try {
-      const full = await articlesApi.getArticle(id);
+      const full = await commentsApi.getComment(id);
       setDetailModal(full);
     } catch {
       // ignore — list will still reflect the change
@@ -132,10 +202,13 @@ export default function ArticleListClient() {
     }
   };
 
+  const reloadList = () =>
+    load(page, keyword, status, isHidden, isReported, articleIdFilter, userIdFilter);
+
   const handleHide = (id: number, onDone?: () => void) => {
     openActionModal({
-      title: "게시글 숨김 처리",
-      description: "숨김 처리된 게시글은 일반 사용자에게 노출되지 않습니다.",
+      title: "댓글 숨김 처리",
+      description: "숨김 처리된 댓글은 일반 사용자에게 노출되지 않습니다.",
       inputLabel: "사유 (선택)",
       confirmLabel: "숨김 처리",
       confirmColor: "bg-meta-6",
@@ -143,9 +216,9 @@ export default function ArticleListClient() {
         closeActionModal();
         setActionLoading(id);
         try {
-          await articlesApi.hideArticle(id, reason || undefined);
-          showToast("게시글이 숨김 처리되었습니다.");
-          load(page, keyword, status, isHidden);
+          await commentsApi.hideComment(id, reason || undefined);
+          showToast("댓글이 숨김 처리되었습니다.");
+          reloadList();
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "숨김 처리 실패", "error");
@@ -159,16 +232,16 @@ export default function ArticleListClient() {
   const handleUnhide = (id: number, onDone?: () => void) => {
     openActionModal({
       title: "숨김 해제",
-      description: "이 게시글을 다시 공개 상태로 전환하시겠습니까?",
+      description: "이 댓글을 다시 공개 상태로 전환하시겠습니까?",
       confirmLabel: "숨김 해제",
       confirmColor: "bg-meta-3",
       onConfirm: async () => {
         closeActionModal();
         setActionLoading(id);
         try {
-          await articlesApi.unhideArticle(id);
+          await commentsApi.unhideComment(id);
           showToast("숨김이 해제되었습니다.");
-          load(page, keyword, status, isHidden);
+          reloadList();
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "숨김 해제 실패", "error");
@@ -181,8 +254,8 @@ export default function ArticleListClient() {
 
   const handleDelete = (id: number, onDone?: () => void) => {
     openActionModal({
-      title: "게시글 삭제",
-      description: "삭제된 게시글은 30일 이내에 복원할 수 있습니다.",
+      title: "댓글 삭제",
+      description: "삭제된 댓글은 복원할 수 있습니다.",
       inputLabel: "삭제 사유 (필수)",
       inputRequired: true,
       confirmLabel: "삭제",
@@ -191,9 +264,9 @@ export default function ArticleListClient() {
         closeActionModal();
         setActionLoading(id);
         try {
-          await articlesApi.deleteArticle(id, reason);
-          showToast("게시글이 삭제되었습니다.");
-          load(page, keyword, status, isHidden);
+          await commentsApi.deleteComment(id, reason);
+          showToast("댓글이 삭제되었습니다.");
+          reloadList();
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "삭제 실패", "error");
@@ -206,17 +279,17 @@ export default function ArticleListClient() {
 
   const handleRestore = (id: number, onDone?: () => void) => {
     openActionModal({
-      title: "게시글 복원",
-      description: "이 게시글을 활성 상태로 복원하시겠습니까?",
+      title: "댓글 복원",
+      description: "이 댓글을 활성 상태로 복원하시겠습니까?",
       confirmLabel: "복원",
       confirmColor: "bg-primary",
       onConfirm: async () => {
         closeActionModal();
         setActionLoading(id);
         try {
-          await articlesApi.restoreArticle(id);
-          showToast("게시글이 복원되었습니다.");
-          load(page, keyword, status, isHidden);
+          await commentsApi.restoreComment(id);
+          showToast("댓글이 복원되었습니다.");
+          reloadList();
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "복원 실패", "error");
@@ -287,13 +360,13 @@ export default function ArticleListClient() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-black dark:text-white">콘텐츠 관리</h1>
+        <h1 className="text-2xl font-bold text-black dark:text-white">댓글 관리</h1>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
         <input
           type="text"
-          placeholder="제목·내용 검색"
+          placeholder="내용 검색"
           value={keyword}
           onChange={(e) => handleKeywordChange(e.target.value)}
           className="rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
@@ -316,6 +389,28 @@ export default function ArticleListClient() {
           <option value="true">숨김</option>
           <option value="false">공개</option>
         </select>
+        <input
+          type="number"
+          placeholder="게시글 ID"
+          value={articleIdFilter}
+          onChange={(e) => handleArticleIdChange(e.target.value)}
+          className="w-32 rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
+        />
+        <input
+          type="number"
+          placeholder="작성자 ID"
+          value={userIdFilter}
+          onChange={(e) => handleUserIdChange(e.target.value)}
+          className="w-32 rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
+        />
+        <label className="flex items-center gap-2 rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:text-white">
+          <input
+            type="checkbox"
+            checked={isReported}
+            onChange={(e) => { setIsReported(e.target.checked); setPage(0); }}
+          />
+          신고된 댓글만
+        </label>
       </div>
 
       {error && <div className="mb-4 text-sm text-red-500">{error}</div>}
@@ -326,11 +421,13 @@ export default function ArticleListClient() {
             <thead>
               <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
                 <th className="px-4 py-3 text-left font-medium">ID</th>
-                <th className="px-4 py-3 text-left font-medium">제목</th>
+                <th className="px-4 py-3 text-left font-medium">게시글 ID</th>
                 <th className="px-4 py-3 text-left font-medium">작성자</th>
+                <th className="px-4 py-3 text-left font-medium">내용</th>
+                <th className="px-4 py-3 text-left font-medium">부모 ID</th>
                 <th className="px-4 py-3 text-left font-medium">상태</th>
                 <th className="px-4 py-3 text-left font-medium">숨김</th>
-                <th className="px-4 py-3 text-left font-medium">조회/좋아요</th>
+                <th className="px-4 py-3 text-left font-medium">신고</th>
                 <th className="px-4 py-3 text-left font-medium">작성일</th>
                 <th className="px-4 py-3 text-left font-medium">상세</th>
                 <th className="px-4 py-3 text-left font-medium">액션</th>
@@ -338,55 +435,71 @@ export default function ArticleListClient() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
-              ) : data?.content.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">게시글이 없습니다</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+              ) : data === null ? (
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">데이터를 불러오지 못했습니다.</td></tr>
+              ) : data.content.length === 0 ? (
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">댓글이 없습니다</td></tr>
               ) : (
-                data?.content.map((article) => (
-                  <tr key={article.articleId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
-                    <td className="px-4 py-3 text-gray-500">{article.articleId}</td>
-                    <td className="px-4 py-3 max-w-xs">
-                      <span className="line-clamp-1 font-medium text-black dark:text-white">{article.title}</span>
-                    </td>
+                data.content.map((comment) => (
+                  <tr key={comment.articleCommentId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
+                    <td className="px-4 py-3 text-gray-500">{comment.articleCommentId}</td>
+                    <td className="px-4 py-3 text-gray-500">{comment.articleId}</td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => openAuthorModal(article.userId)}
-                        disabled={!article.authorNickname && !article.authorEmail}
-                        className="text-left hover:underline disabled:no-underline disabled:cursor-default"
-                      >
-                        <div className="text-xs text-gray-400">#{article.userId}</div>
-                        <div className="font-medium text-black dark:text-white">
-                          {article.authorNickname ?? "(탈퇴 계정)"}
-                        </div>
-                        {article.authorEmail && (
-                          <div className="text-xs text-gray-500">{article.authorEmail}</div>
-                        )}
-                      </button>
+                      {comment.userId != null ? (
+                        <button
+                          onClick={() => openAuthorModal(comment.userId!)}
+                          className="text-left hover:underline"
+                        >
+                          <div className="text-xs text-gray-400">#{comment.userId}</div>
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 max-w-xs">
+                      <span className="line-clamp-1 text-black dark:text-white">{comment.comment}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {comment.parentCommentId ?? <span className="text-gray-400">-</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`rounded px-2 py-0.5 text-xs font-medium ${
-                        article.status === "ACTIVE" ? "bg-meta-3/10 text-meta-3" : "bg-meta-5/10 text-meta-5"
+                        comment.status === "ACTIVE" ? "bg-meta-3/10 text-meta-3" : "bg-meta-5/10 text-meta-5"
                       }`}>
-                        {statusLabel[article.status] ?? article.status}
+                        {statusLabel[comment.status] ?? comment.status}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {article.isHidden ? (
+                      {comment.isHidden ? (
                         <span className="rounded bg-meta-6/10 px-2 py-0.5 text-xs font-medium text-meta-6">숨김</span>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{article.readCount ?? 0} / {article.likeCount ?? 0}</td>
-                    <td className="px-4 py-3 text-gray-500">{article.createdAt?.slice(0, 10)}</td>
+                    <td className="px-4 py-3">
+                      {(comment.reportCount ?? 0) > 0 ? (
+                        <button
+                          onClick={() => openReportsModal(comment.articleCommentId)}
+                          className="rounded bg-meta-1/10 px-2 py-0.5 text-xs font-medium text-meta-1 hover:bg-meta-1/20"
+                        >
+                          {comment.reportCount}건
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">0</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{comment.createdAt?.slice(0, 10)}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={async () => {
-                          setCurrentImageIndex(0);
                           setDetailLoading(true);
-                          setDetailModal(article);
+                          setDetailModal({
+                            ...comment,
+                            reportCount: comment.reportCount ?? 0,
+                          } as AdminCommentDetail);
                           try {
-                            const full = await articlesApi.getArticle(article.articleId);
+                            const full = await commentsApi.getComment(comment.articleCommentId);
                             setDetailModal(full);
                           } catch (e: unknown) {
                             showToast(e instanceof Error ? e.message : "상세 정보 로드 실패", "error");
@@ -402,35 +515,35 @@ export default function ArticleListClient() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        {article.isHidden ? (
+                        {comment.isHidden ? (
                           <button
-                            onClick={() => handleUnhide(article.articleId)}
-                            disabled={actionLoading === article.articleId}
+                            onClick={() => handleUnhide(comment.articleCommentId)}
+                            disabled={actionLoading === comment.articleCommentId}
                             className="rounded bg-meta-3 px-2 py-1 text-xs text-white hover:bg-opacity-90 disabled:opacity-40"
                           >
                             숨김해제
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleHide(article.articleId)}
-                            disabled={actionLoading === article.articleId}
+                            onClick={() => handleHide(comment.articleCommentId)}
+                            disabled={actionLoading === comment.articleCommentId}
                             className="rounded bg-meta-6 px-2 py-1 text-xs text-white hover:bg-opacity-90 disabled:opacity-40"
                           >
                             숨김
                           </button>
                         )}
-                        {article.status === "ACTIVE" ? (
+                        {comment.status === "ACTIVE" ? (
                           <button
-                            onClick={() => handleDelete(article.articleId)}
-                            disabled={actionLoading === article.articleId}
+                            onClick={() => handleDelete(comment.articleCommentId)}
+                            disabled={actionLoading === comment.articleCommentId}
                             className="rounded bg-meta-1 px-2 py-1 text-xs text-white hover:bg-opacity-90 disabled:opacity-40"
                           >
                             삭제
                           </button>
                         ) : (
                           <button
-                            onClick={() => handleRestore(article.articleId)}
-                            disabled={actionLoading === article.articleId}
+                            onClick={() => handleRestore(comment.articleCommentId)}
+                            disabled={actionLoading === comment.articleCommentId}
                             className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-opacity-90 disabled:opacity-40"
                           >
                             복원
@@ -457,45 +570,27 @@ export default function ArticleListClient() {
         )}
       </div>
 
-      {/* Lightbox */}
-      {selectedImage && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80"
-          onClick={() => setSelectedImage(null)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={selectedImage}
-            alt="원본 이미지"
-            className="max-h-[90vh] max-w-[90vw] rounded object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            onClick={() => setSelectedImage(null)}
-            className="absolute right-4 top-4 text-white text-3xl leading-none hover:opacity-70"
-          >
-            &times;
-          </button>
-        </div>
-      )}
-
       {/* Detail modal */}
       {detailModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-2xl rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark max-h-[85vh] overflow-y-auto">
-            {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex flex-wrap items-center gap-2 pr-4">
-                <h3 className="text-lg font-semibold text-black dark:text-white">{detailModal.title}</h3>
+                <h3 className="text-lg font-semibold text-black dark:text-white">댓글 #{detailModal.articleCommentId}</h3>
                 {detailModal.isHidden && (
                   <span className="shrink-0 rounded bg-meta-6/10 px-2 py-0.5 text-xs font-medium text-meta-6">숨김</span>
                 )}
                 {detailModal.status === "DELETED" && (
                   <span className="shrink-0 rounded bg-meta-5/10 px-2 py-0.5 text-xs font-medium text-meta-5">삭제됨</span>
                 )}
+                {detailModal.reportCount > 0 && (
+                  <span className="shrink-0 rounded bg-meta-1/10 px-2 py-0.5 text-xs font-medium text-meta-1">
+                    신고 {detailModal.reportCount}건
+                  </span>
+                )}
               </div>
               <button
-                onClick={() => { setDetailModal(null); setSelectedImage(null); }}
+                onClick={() => setDetailModal(null)}
                 className="shrink-0 text-gray-400 hover:text-gray-600 text-xl leading-none"
               >
                 &times;
@@ -505,19 +600,29 @@ export default function ArticleListClient() {
             {/* Meta */}
             <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-gray-600 dark:text-gray-400">
               <p><span className="font-medium">게시글 ID:</span> {detailModal.articleId}</p>
+              {detailModal.articleTitle && (
+                <p className="col-span-2">
+                  <span className="font-medium">게시글 제목:</span> {detailModal.articleTitle}
+                </p>
+              )}
               <p className="col-span-2">
                 <span className="font-medium">작성자:</span>{" "}
-                <button
-                  onClick={() => openAuthorModal(detailModal.userId)}
-                  disabled={!detailModal.authorNickname && !detailModal.authorEmail}
-                  className="text-primary hover:underline disabled:no-underline disabled:text-gray-500"
-                >
-                  #{detailModal.userId} {detailModal.authorNickname ?? "(탈퇴 계정)"}
-                  {detailModal.authorEmail && ` · ${detailModal.authorEmail}`}
-                </button>
+                {detailLoading ? (
+                  <span className="text-gray-400">로딩 중...</span>
+                ) : (
+                  <button
+                    onClick={() => detailModal.userId != null && openAuthorModal(detailModal.userId)}
+                    className="text-primary hover:underline"
+                  >
+                    {detailModal.userId != null ? `#${detailModal.userId} ` : ""}
+                    {detailModal.authorNickname ?? "(탈퇴 계정)"}
+                    {detailModal.authorEmail && ` · ${detailModal.authorEmail}`}
+                  </button>
+                )}
               </p>
-              <p><span className="font-medium">카테고리:</span> {detailModal.category ?? "-"}</p>
-              <p><span className="font-medium">타입 ID:</span> {detailModal.articleTypeId}</p>
+              {detailModal.parentCommentId && (
+                <p><span className="font-medium">부모 댓글 ID:</span> {detailModal.parentCommentId}</p>
+              )}
               <p>
                 <span className="font-medium">상태:</span>{" "}
                 <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${
@@ -533,112 +638,44 @@ export default function ArticleListClient() {
                   : <span className="text-gray-400">공개</span>
                 }
               </p>
-              <p><span className="font-medium">조회수:</span> {(detailModal.readCount ?? 0).toLocaleString()}</p>
-              <p><span className="font-medium">좋아요:</span> {(detailModal.likeCount ?? 0).toLocaleString()}</p>
-              {detailModal.location && (
-                <p className="col-span-2"><span className="font-medium">위치:</span> {detailModal.location}</p>
-              )}
-              {detailModal.latitude != null && detailModal.longitude != null && (
-                <p className="col-span-2"><span className="font-medium">좌표:</span> {detailModal.latitude}, {detailModal.longitude}</p>
-              )}
+              <p><span className="font-medium">미처리 신고:</span> {detailModal.reportCount}건</p>
               <p><span className="font-medium">작성일:</span> {detailModal.createdAt?.slice(0, 16).replace("T", " ")}</p>
-              <p><span className="font-medium">수정일:</span> {detailModal.updatedAt?.slice(0, 16).replace("T", " ")}</p>
+              {detailModal.updatedAt && (
+                <p><span className="font-medium">수정일:</span> {detailModal.updatedAt.slice(0, 16).replace("T", " ")}</p>
+              )}
             </div>
 
             {/* Body */}
             <div className="mb-4">
-              <p className="mb-1.5 text-sm font-medium text-black dark:text-white">본문</p>
+              <p className="mb-1.5 text-sm font-medium text-black dark:text-white">댓글 본문</p>
               <div className="rounded border border-stroke p-3 dark:border-strokedark">
                 {detailLoading ? (
                   <p className="text-sm text-gray-400">불러오는 중...</p>
                 ) : (
                   <p className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
-                    {detailModal.content || "(내용 없음)"}
+                    {detailModal.comment || "(내용 없음)"}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Images */}
-            <div className="mb-4">
-              <p className="mb-1.5 text-sm font-medium text-black dark:text-white">
-                이미지 ({detailModal.images?.length ?? 0}장)
-              </p>
-              {detailLoading ? (
-                <div className="flex h-48 items-center justify-center rounded border border-stroke bg-gray-1 dark:border-strokedark dark:bg-meta-4">
-                  <span className="text-sm text-gray-400">불러오는 중...</span>
-                </div>
-              ) : detailModal.images && detailModal.images.length > 0 ? (
-                <>
-                  <div className="relative overflow-hidden rounded border border-stroke bg-black dark:border-strokedark" style={{ aspectRatio: "4/3" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={detailModal.images[currentImageIndex]}
-                      alt={`이미지 ${currentImageIndex + 1}`}
-                      className="h-full w-full cursor-zoom-in object-contain"
-                      onClick={() => setSelectedImage(detailModal.images![currentImageIndex])}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0.3"; }}
-                    />
-                    {detailModal.images.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => setCurrentImageIndex((i) => (i - 1 + detailModal.images!.length) % detailModal.images!.length)}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-xl text-white hover:bg-black/70"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          onClick={() => setCurrentImageIndex((i) => (i + 1) % detailModal.images!.length)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-xl text-white hover:bg-black/70"
-                        >
-                          ›
-                        </button>
-                        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
-                          {detailModal.images.map((_, i) => (
-                            <button
-                              key={i}
-                              onClick={() => setCurrentImageIndex(i)}
-                              className={`h-1.5 w-1.5 rounded-full transition-colors ${i === currentImageIndex ? "bg-white" : "bg-white/40"}`}
-                            />
-                          ))}
-                        </div>
-                      </>
-                    )}
-                    <span className="absolute right-2 top-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white">
-                      {currentImageIndex + 1} / {detailModal.images.length}
-                    </span>
-                  </div>
-                  {detailModal.images.length > 1 && (
-                    <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-                      {detailModal.images.map((url, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setCurrentImageIndex(i)}
-                          className={`h-14 w-14 shrink-0 overflow-hidden rounded border-2 transition-colors ${i === currentImageIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"}`}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt="" className="h-full w-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex h-32 items-center justify-center rounded border border-dashed border-stroke bg-gray-1 dark:border-strokedark dark:bg-meta-4">
-                  <span className="text-sm text-gray-400">이미지 없음</span>
-                </div>
-              )}
-            </div>
-
             {/* Actions */}
             <div className="flex justify-end gap-2">
+              {detailModal.reportCount > 0 && (
+                <button
+                  onClick={() => openReportsModal(detailModal.articleCommentId)}
+                  className="rounded bg-meta-1/10 px-3 py-1.5 text-sm text-meta-1 hover:bg-meta-1/20"
+                >
+                  신고 이력 ({detailModal.reportCount})
+                </button>
+              )}
               {detailModal.isHidden ? (
                 <button
                   onClick={() => {
-                    const id = detailModal.articleId;
+                    const id = detailModal.articleCommentId;
                     handleUnhide(id, () => refreshDetail(id));
                   }}
-                  disabled={actionLoading === detailModal.articleId || detailLoading}
+                  disabled={actionLoading === detailModal.articleCommentId || detailLoading}
                   className="rounded bg-meta-3 px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-40"
                 >
                   숨김 해제
@@ -646,10 +683,10 @@ export default function ArticleListClient() {
               ) : (
                 <button
                   onClick={() => {
-                    const id = detailModal.articleId;
+                    const id = detailModal.articleCommentId;
                     handleHide(id, () => refreshDetail(id));
                   }}
-                  disabled={actionLoading === detailModal.articleId || detailLoading}
+                  disabled={actionLoading === detailModal.articleCommentId || detailLoading}
                   className="rounded bg-meta-6 px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-40"
                 >
                   숨김 처리
@@ -658,10 +695,10 @@ export default function ArticleListClient() {
               {detailModal.status === "ACTIVE" ? (
                 <button
                   onClick={() => {
-                    const id = detailModal.articleId;
+                    const id = detailModal.articleCommentId;
                     handleDelete(id, () => setDetailModal(null));
                   }}
-                  disabled={actionLoading === detailModal.articleId || detailLoading}
+                  disabled={actionLoading === detailModal.articleCommentId || detailLoading}
                   className="rounded bg-meta-1 px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-40"
                 >
                   삭제
@@ -669,17 +706,17 @@ export default function ArticleListClient() {
               ) : (
                 <button
                   onClick={() => {
-                    const id = detailModal.articleId;
+                    const id = detailModal.articleCommentId;
                     handleRestore(id, () => setDetailModal(null));
                   }}
-                  disabled={actionLoading === detailModal.articleId || detailLoading}
+                  disabled={actionLoading === detailModal.articleCommentId || detailLoading}
                   className="rounded bg-primary px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-40"
                 >
                   복원
                 </button>
               )}
               <button
-                onClick={() => { setDetailModal(null); setSelectedImage(null); }}
+                onClick={() => setDetailModal(null)}
                 className="rounded border border-stroke px-3 py-1.5 text-sm hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
               >
                 닫기
@@ -689,7 +726,7 @@ export default function ArticleListClient() {
         </div>
       )}
 
-      {/* Author info modal */}
+      {/* Author modal */}
       {authorModalUserId !== null && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark max-h-[85vh] overflow-y-auto">
@@ -766,6 +803,74 @@ export default function ArticleListClient() {
                 사용자 정보를 불러올 수 없습니다.
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Reports modal */}
+      {reportsModalCommentId !== null && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-2xl rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark max-h-[85vh] overflow-y-auto">
+            <div className="mb-4 flex items-start justify-between">
+              <h3 className="text-lg font-semibold text-black dark:text-white">
+                댓글 #{reportsModalCommentId} 신고 이력
+              </h3>
+              <button
+                onClick={closeReportsModal}
+                className="shrink-0 text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {reportsModalLoading ? (
+              <div className="py-10 text-center text-sm text-gray-400">불러오는 중...</div>
+            ) : !reportsModalData || reportsModalData.length === 0 ? (
+              <div className="py-10 text-center text-sm text-gray-400">신고 이력이 없습니다.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-stroke dark:border-strokedark">
+                    <th className="px-2 py-2 text-left font-medium">신고 ID</th>
+                    <th className="px-2 py-2 text-left font-medium">신고자 ID</th>
+                    <th className="px-2 py-2 text-left font-medium">사유</th>
+                    <th className="px-2 py-2 text-left font-medium">설명</th>
+                    <th className="px-2 py-2 text-left font-medium">신고일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportsModalData.map((d) => (
+                    <tr key={d.reportId} className="border-b border-stroke dark:border-strokedark">
+                      <td className="px-2 py-2 text-gray-500">{d.reportId}</td>
+                      <td className="px-2 py-2">
+                        <button
+                          onClick={() => openAuthorModal(d.reporterUserId)}
+                          className="text-primary hover:underline"
+                        >
+                          #{d.reporterUserId}
+                        </button>
+                      </td>
+                      <td className="px-2 py-2">{reasonLabel[d.reason] ?? d.reason}</td>
+                      <td className="px-2 py-2 max-w-xs">
+                        <span className="line-clamp-2 text-gray-700 dark:text-gray-300">
+                          {d.description ?? "-"}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-gray-500">{d.reportedAt?.slice(0, 10)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={closeReportsModal}
+                className="rounded border border-stroke px-3 py-1.5 text-sm hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

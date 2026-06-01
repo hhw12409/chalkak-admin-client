@@ -50,7 +50,7 @@ export async function request<T>(
 
   const body = await res.json();
 
-  if (!res.ok) {
+  if (!res.ok || body?.success === false) {
     throw new Error(body?.message ?? `API error ${res.status}`);
   }
 

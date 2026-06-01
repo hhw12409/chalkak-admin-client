@@ -20,9 +20,17 @@ const reasonLabel: Record<string, string> = {
   ETC: "기타",
 };
 
+const actionLabel: Record<string, string> = {
+  HIDE_CONTENT: "내용 숨김",
+  DELETE_CONTENT: "내용 삭제",
+  REJECT_REPORT: "신고 기각",
+  WARN_USER: "사용자 경고",
+};
+
 export default function ReportListClient() {
   const [reports, setReports] = useState<ReportGroup[]>([]);
   const [targetType, setTargetType] = useState("");
+  const [processedFilter, setProcessedFilter] = useState<string>("false");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -34,17 +42,21 @@ export default function ReportListClient() {
   const [action, setAction] = useState<ReportAction>("REJECT_REPORT");
   const [resolveReason, setResolveReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const load = (tt: string) => {
+  const load = (tt: string, pf: string) => {
     setLoading(true);
     reportsApi
-      .getReports({ targetType: tt || undefined })
+      .getReports({
+        targetType: tt || undefined,
+        processedOnly: pf === "" ? undefined : pf === "true",
+      })
       .then(setReports)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(targetType); }, [targetType]);
+  useEffect(() => { load(targetType, processedFilter); }, [targetType, processedFilter]);
 
   const toggleExpand = async (report: ReportGroup) => {
     const key = `${report.targetType}_${report.targetId}`;
@@ -80,9 +92,16 @@ export default function ReportListClient() {
       await reportsApi.resolveReport(resolveTarget.targetType, resolveTarget.targetId, action, resolveReason);
       setResolveTarget(null);
       setResolveReason("");
-      load(targetType);
+      setDetails({});
+      setSuccessMessage(
+        processedFilter === "false"
+          ? "신고가 처리되었습니다. '전체' 또는 '처리완료만' 필터에서 처리 내역을 확인하세요."
+          : "신고가 처리되었습니다."
+      );
+      window.setTimeout(() => setSuccessMessage(""), 2000);
+      load(targetType, processedFilter);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "처리 실패");
+      setError(err instanceof Error ? err.message : "처리 실패");
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +123,22 @@ export default function ReportListClient() {
           <option value="ARTICLE">게시글</option>
           <option value="COMMENT">댓글</option>
         </select>
+        <select
+          value={processedFilter}
+          onChange={(e) => setProcessedFilter(e.target.value)}
+          className="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-boxdark dark:text-white"
+        >
+          <option value="false">미처리만</option>
+          <option value="">전체</option>
+          <option value="true">처리완료만</option>
+        </select>
       </div>
+
+      {successMessage && (
+        <div className="mb-4 rounded border border-success/30 bg-success/10 px-3 py-2 text-sm text-success">
+          {successMessage}
+        </div>
+      )}
 
       {error && <div className="mb-4 text-sm text-red-500">{error}</div>}
 
@@ -117,18 +151,47 @@ export default function ReportListClient() {
           reports.map((report) => {
             const key = `${report.targetType}_${report.targetId}`;
             const isExpanded = expandedKey === key;
+            const rowBgClass = report.isProcessed
+              ? "bg-gray-50 dark:bg-meta-4"
+              : "hover:bg-gray-1 dark:hover:bg-meta-4";
             return (
               <div key={key} className="border-b border-stroke dark:border-strokedark">
-                <div className="flex items-center gap-4 px-4 py-3 hover:bg-gray-1 dark:hover:bg-meta-4">
+                <div className={`flex items-center gap-4 px-4 py-3 ${rowBgClass}`}>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                         {report.targetType === 'ARTICLE' ? '게시글' : '댓글'}
                       </span>
                       <span className="text-xs text-gray-500">ID: {report.targetId}</span>
-                      <span className="rounded bg-meta-1/10 px-2 py-0.5 text-xs font-medium text-meta-1">
-                        신고 {report.reportCount}건
-                      </span>
+                      {report.isProcessed ? (
+                        <>
+                          <span className="rounded bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                            처리됨
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            총 신고 {report.reportCount}건
+                          </span>
+                          {report.resolvedAction && (
+                            <span className="text-xs text-gray-500">
+                              처리방식: {actionLabel[report.resolvedAction] ?? report.resolvedAction}
+                            </span>
+                          )}
+                          {report.processedAt && (
+                            <span className="text-xs text-gray-500">
+                              처리일시: {report.processedAt.slice(0, 10)}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="rounded bg-meta-1/10 px-2 py-0.5 text-xs font-medium text-meta-1">
+                            신고 {report.unprocessedCount}건 미처리
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            총 신고 {report.reportCount}건
+                          </span>
+                        </>
+                      )}
                       <span className="text-xs text-gray-500">
                         주요사유: {reasonLabel[report.topReason] ?? report.topReason}
                       </span>
@@ -147,12 +210,14 @@ export default function ReportListClient() {
                     >
                       {isExpanded ? "접기" : "상세"}
                     </button>
-                    <button
-                      onClick={() => { setResolveTarget(report); setAction("REJECT_REPORT"); setResolveReason(""); }}
-                      className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-opacity-90"
-                    >
-                      처리
-                    </button>
+                    {!report.isProcessed && (
+                      <button
+                        onClick={() => { setResolveTarget(report); setAction("REJECT_REPORT"); setResolveReason(""); }}
+                        className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-opacity-90"
+                      >
+                        처리
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -231,6 +296,7 @@ export default function ReportListClient() {
                               <th className="py-1 text-left">사유</th>
                               <th className="py-1 text-left">설명</th>
                               <th className="py-1 text-left">신고일</th>
+                              <th className="py-1 text-left">처리 상태</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -240,6 +306,16 @@ export default function ReportListClient() {
                                 <td className="py-1">{reasonLabel[d.reason] ?? d.reason}</td>
                                 <td className="py-1 max-w-xs truncate">{d.description ?? "-"}</td>
                                 <td className="py-1">{d.reportedAt?.slice(0, 10)}</td>
+                                <td className="py-1">
+                                  {d.processedAt ? (
+                                    <span className="rounded bg-success/10 px-1.5 py-0.5 text-success">
+                                      처리됨 · {d.processedAt.slice(0, 10)}
+                                      {d.resolvedAction ? ` · ${actionLabel[d.resolvedAction] ?? d.resolvedAction}` : ''}
+                                    </span>
+                                  ) : (
+                                    <span className="text-meta-1">미처리</span>
+                                  )}
+                                </td>
                               </tr>
                             ))}
                           </tbody>

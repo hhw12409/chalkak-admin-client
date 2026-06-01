@@ -2,6 +2,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { keywordsApi } from "@/lib/api/keywords";
 import { PopularKeyword, SearchKeyword, PagedResponseDto } from "@/types/admin";
+import Pagination from "@/components/common/Pagination";
+import PopularKeywordEditModal from "./PopularKeywordEditModal";
+import PopularKeywordDeleteModal from "./PopularKeywordDeleteModal";
 
 export default function KeywordClient() {
   const [popular, setPopular] = useState<PopularKeyword[]>([]);
@@ -11,6 +14,8 @@ export default function KeywordClient() {
   const [loading, setLoading] = useState(true);
   const [rebuilding, setRebuilding] = useState(false);
   const [error, setError] = useState("");
+  const [editTarget, setEditTarget] = useState<PopularKeyword | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PopularKeyword | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadPopular = () => keywordsApi.getPopularKeywords().then(setPopular).catch(() => {});
@@ -89,18 +94,35 @@ export default function KeywordClient() {
                   <th className="px-4 py-3 text-left font-medium">키워드</th>
                   <th className="px-4 py-3 text-left font-medium">변동</th>
                   <th className="px-4 py-3 text-left font-medium">검색 수</th>
+                  <th className="px-4 py-3 text-left font-medium">액션</th>
                 </tr>
               </thead>
               <tbody>
                 {popular.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-6 text-center text-gray-400">데이터 없음</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400">데이터 없음</td></tr>
                 ) : (
                   popular.map((kw) => (
-                    <tr key={kw.keyword} className="border-b border-stroke dark:border-strokedark">
+                    <tr key={kw.popularKeywordId} className="border-b border-stroke dark:border-strokedark">
                       <td className="px-4 py-3 font-bold text-black dark:text-white">{kw.rank}</td>
                       <td className="px-4 py-3">{kw.keyword}</td>
                       <td className="px-4 py-3">{rankChangeLabel(kw.rankChange)}</td>
-                      <td className="px-4 py-3 text-gray-500">{kw.searchCount.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-gray-500">{kw.searchCount?.toLocaleString() ?? '-'}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setEditTarget(kw)}
+                            className="rounded bg-primary px-2 py-1 text-xs text-white hover:bg-opacity-90"
+                          >
+                            편집
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(kw)}
+                            className="rounded bg-meta-1 px-2 py-1 text-xs text-white hover:bg-opacity-90"
+                          >
+                            긴급삭제
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -149,19 +171,39 @@ export default function KeywordClient() {
               </tbody>
             </table>
           </div>
-          {searchData && searchData.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-stroke px-4 py-3 dark:border-strokedark">
-              <span className="text-sm text-gray-500">{page + 1} / {searchData.totalPages}</span>
-              <div className="flex gap-2">
-                <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}
-                  className="rounded border border-stroke px-3 py-1 text-sm disabled:opacity-40 hover:bg-gray-1 dark:border-strokedark">이전</button>
-                <button disabled={page + 1 >= searchData.totalPages} onClick={() => setPage((p) => p + 1)}
-                  className="rounded border border-stroke px-3 py-1 text-sm disabled:opacity-40 hover:bg-gray-1 dark:border-strokedark">다음</button>
-              </div>
-            </div>
+          {searchData && searchData.totalPages > 0 && (
+            <Pagination
+              page={page}
+              totalPages={searchData.totalPages}
+              totalElements={searchData.total}
+              first={searchData.first}
+              last={searchData.last}
+              onPageChange={setPage}
+              itemLabel="건"
+            />
           )}
         </div>
       </div>
+
+      {editTarget && (
+        <PopularKeywordEditModal
+          keyword={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => {
+            loadPopular();
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <PopularKeywordDeleteModal
+          keyword={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onSuccess={() => {
+            loadPopular();
+          }}
+        />
+      )}
     </div>
   );
 }

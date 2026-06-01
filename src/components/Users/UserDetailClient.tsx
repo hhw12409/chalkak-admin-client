@@ -104,6 +104,7 @@ export default function UserDetailClient({ userId }: Props) {
           <Info label="닉네임" value={user.nickname} />
           <Info label="이메일" value={user.email} />
           <Info label="역할" value={user.role} />
+          <Info label="로그인 타입" value={user.snsType ?? "-"} />
           <Info label="상태" value={user.status} />
           <Info label="비공개 계정" value={user.isPrivate ? "예" : "아니오"} />
           <Info label="가입일" value={user.createdAt?.slice(0, 10)} />

@@ -3,11 +3,24 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usersApi } from "@/lib/api/users";
 import { AdminUser, PageResponse } from "@/types/admin";
+import Pagination from "@/components/common/Pagination";
 
 const statusLabel: Record<string, string> = {
   ACTIVE: "활성",
   DELETED: "탈퇴",
   SUSPENDED: "정지",
+};
+
+const roleLabel: Record<string, string> = {
+  USER: "일반",
+  ADMIN: "관리자",
+};
+
+const snsTypeLabel: Record<string, string> = {
+  KAKAO: "카카오",
+  NAVER: "네이버",
+  APPLE: "애플",
+  GOOGLE: "구글",
 };
 
 export default function UserListClient() {
@@ -78,6 +91,8 @@ export default function UserListClient() {
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">ID</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">닉네임</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">이메일</th>
+                <th className="px-4 py-3 text-left font-medium text-black dark:text-white">역할</th>
+                <th className="px-4 py-3 text-left font-medium text-black dark:text-white">로그인 타입</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">상태</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">가입일</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">액션</th>
@@ -85,15 +100,27 @@ export default function UserListClient() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
               ) : data?.content.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">사용자가 없습니다</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">사용자가 없습니다</td></tr>
               ) : (
                 data?.content.map((user) => (
                   <tr key={user.userId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.userId}</td>
                     <td className="px-4 py-3 font-medium text-black dark:text-white">{user.nickname}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                        user.role === 'ADMIN' ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600 dark:bg-meta-4 dark:text-gray-300'
+                      }`}>
+                        {roleLabel[user.role] ?? user.role}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-block rounded px-2 py-0.5 text-xs font-medium bg-meta-7/10 text-meta-7">
+                        {snsTypeLabel[user.snsType ?? ""] ?? (user.snsType || "-")}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
                         user.status === 'ACTIVE' ? 'bg-meta-3/10 text-meta-3' :
@@ -118,28 +145,16 @@ export default function UserListClient() {
           </table>
         </div>
 
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-stroke px-4 py-3 dark:border-strokedark">
-            <span className="text-sm text-gray-500">
-              {page + 1} / {data.totalPages} 페이지 (총 {data.totalElements}명)
-            </span>
-            <div className="flex gap-2">
-              <button
-                disabled={data.first}
-                onClick={() => setPage((p) => p - 1)}
-                className="rounded border border-stroke px-3 py-1 text-sm disabled:opacity-40 hover:bg-gray-1 dark:border-strokedark dark:hover:bg-meta-4"
-              >
-                이전
-              </button>
-              <button
-                disabled={data.last}
-                onClick={() => setPage((p) => p + 1)}
-                className="rounded border border-stroke px-3 py-1 text-sm disabled:opacity-40 hover:bg-gray-1 dark:border-strokedark dark:hover:bg-meta-4"
-              >
-                다음
-              </button>
-            </div>
-          </div>
+        {data && data.totalPages > 0 && (
+          <Pagination
+            page={page}
+            totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            first={data.first}
+            last={data.last}
+            onPageChange={setPage}
+            itemLabel="명"
+          />
         )}
       </div>
     </div>
