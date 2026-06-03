@@ -112,7 +112,7 @@ function KeywordRankTable() {
 
   useEffect(() => {
     keywordsApi
-      .getPopularKeywords()
+      .getPopularKeywords("PHOTO_SPOT")
       .then((list) => setData(list.slice(0, 10)))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));

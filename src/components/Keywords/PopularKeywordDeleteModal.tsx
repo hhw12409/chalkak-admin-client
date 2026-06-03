@@ -55,6 +55,9 @@ export default function PopularKeywordDeleteModal({ keyword, onClose, onSuccess 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="w-full max-w-md rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark">
         <h3 className="mb-4 text-lg font-semibold text-meta-1">
+          <span className="mr-2 inline-flex items-center rounded bg-meta-1/10 px-2 py-0.5 text-xs font-medium text-meta-1">
+            {keyword.searchType === "PHOTO_SPOT" ? "포토스팟" : "커뮤니티"}
+          </span>
           긴급 삭제 &mdash; &quot;{keyword.keyword}&quot;
         </h3>
 

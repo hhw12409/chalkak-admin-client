@@ -1,13 +1,15 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { keywordsApi } from "@/lib/api/keywords";
-import { PopularKeyword, SearchKeyword, PagedResponseDto } from "@/types/admin";
+import { PopularKeyword, SearchKeyword, SearchType, PagedResponseDto } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
 import PopularKeywordEditModal from "./PopularKeywordEditModal";
 import PopularKeywordDeleteModal from "./PopularKeywordDeleteModal";
+import PopularKeywordTabs from "./PopularKeywordTabs";
 
 export default function KeywordClient() {
   const [popular, setPopular] = useState<PopularKeyword[]>([]);
+  const [activeType, setActiveType] = useState<SearchType>("PHOTO_SPOT");
   const [searchData, setSearchData] = useState<PagedResponseDto<SearchKeyword> | null>(null);
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(0);
@@ -18,7 +20,8 @@ export default function KeywordClient() {
   const [deleteTarget, setDeleteTarget] = useState<PopularKeyword | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadPopular = () => keywordsApi.getPopularKeywords().then(setPopular).catch(() => {});
+  const loadPopular = (searchType: SearchType) =>
+    keywordsApi.getPopularKeywords(searchType).then(setPopular).catch(() => {});
   const loadSearch = (p: number, kw: string) => {
     setLoading(true);
     keywordsApi
@@ -29,10 +32,17 @@ export default function KeywordClient() {
   };
 
   useEffect(() => {
-    loadPopular();
+    loadPopular(activeType);
     loadSearch(0, "");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleTypeChange = (type: SearchType) => {
+    if (type === activeType) return;
+    setActiveType(type);
+    setPopular([]);
+    loadPopular(type);
+  };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadSearch(page, keyword); }, [page]); // keyword handled via debounce
@@ -50,8 +60,8 @@ export default function KeywordClient() {
     if (!confirm("인기 검색어를 수동으로 재집계하시겠습니까?")) return;
     setRebuilding(true);
     try {
-      await keywordsApi.rebuildPopularKeywords();
-      await loadPopular();
+      await keywordsApi.rebuildPopularKeywords(activeType);
+      await loadPopular(activeType);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "재집계 실패");
     } finally {
@@ -86,6 +96,9 @@ export default function KeywordClient() {
               {rebuilding ? "집계 중..." : "수동 재집계"}
             </button>
           </div>
+          <div className="border-b border-stroke px-6 py-3 dark:border-strokedark">
+            <PopularKeywordTabs value={activeType} onChange={handleTypeChange} />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -93,19 +106,29 @@ export default function KeywordClient() {
                   <th className="px-4 py-3 text-left font-medium">순위</th>
                   <th className="px-4 py-3 text-left font-medium">키워드</th>
                   <th className="px-4 py-3 text-left font-medium">변동</th>
+                  <th className="px-4 py-3 text-left font-medium">NEW</th>
                   <th className="px-4 py-3 text-left font-medium">검색 수</th>
                   <th className="px-4 py-3 text-left font-medium">액션</th>
                 </tr>
               </thead>
               <tbody>
                 {popular.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-gray-400">데이터 없음</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400">데이터 없음</td></tr>
                 ) : (
                   popular.map((kw) => (
                     <tr key={kw.popularKeywordId} className="border-b border-stroke dark:border-strokedark">
                       <td className="px-4 py-3 font-bold text-black dark:text-white">{kw.rank}</td>
                       <td className="px-4 py-3">{kw.keyword}</td>
                       <td className="px-4 py-3">{rankChangeLabel(kw.rankChange)}</td>
+                      <td className="px-4 py-3">
+                        {kw.isNew ? (
+                          <span className="inline-flex items-center rounded bg-meta-3/10 px-2 py-0.5 text-xs font-medium text-meta-3">
+                            NEW
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-gray-500">{kw.searchCount?.toLocaleString() ?? '-'}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
@@ -190,7 +213,7 @@ export default function KeywordClient() {
           keyword={editTarget}
           onClose={() => setEditTarget(null)}
           onSuccess={() => {
-            loadPopular();
+            loadPopular(activeType);
           }}
         />
       )}
@@ -200,7 +223,7 @@ export default function KeywordClient() {
           keyword={deleteTarget}
           onClose={() => setDeleteTarget(null)}
           onSuccess={() => {
-            loadPopular();
+            loadPopular(activeType);
           }}
         />
       )}

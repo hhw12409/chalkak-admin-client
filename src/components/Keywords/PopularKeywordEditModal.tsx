@@ -87,6 +87,9 @@ export default function PopularKeywordEditModal({ keyword, onClose, onSuccess }:
     >
       <div className="w-full max-w-md rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark">
         <h3 className="mb-4 text-lg font-semibold text-black dark:text-white">
+          <span className="mr-2 inline-flex items-center rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+            {keyword.searchType === "PHOTO_SPOT" ? "포토스팟" : "커뮤니티"}
+          </span>
           인기검색어 수정
         </h3>
 

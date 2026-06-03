@@ -4,6 +4,7 @@ import {
   PopularKeywordUpdatePayload,
   PopularKeywordDeletePayload,
   SearchKeyword,
+  SearchType,
   PagedResponseDto,
 } from '@/types/admin';
 
@@ -14,11 +15,17 @@ interface SearchKeywordParams {
 }
 
 export const keywordsApi = {
-  getPopularKeywords: () =>
-    request<PopularKeyword[]>('/popular-keywords'),
+  getPopularKeywords: (searchType: SearchType) => {
+    const qs = buildParams({ searchType });
+    return request<PopularKeyword[]>(`/popular-keywords${qs ? `?${qs}` : ''}`);
+  },
 
-  rebuildPopularKeywords: () =>
-    request<void>('/popular-keywords/rebuild', { method: 'POST' }),
+  rebuildPopularKeywords: (searchType: SearchType) => {
+    const qs = buildParams({ searchType });
+    return request<void>(`/popular-keywords/rebuild${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+    });
+  },
 
   updatePopularKeyword: (id: number, payload: PopularKeywordUpdatePayload) =>
     request<PopularKeyword>(`/popular-keywords/${id}`, {

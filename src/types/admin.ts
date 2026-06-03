@@ -185,11 +185,15 @@ export interface AuditLog {
   createdAt: string;
 }
 
+export type SearchType = 'PHOTO_SPOT' | 'COMMUNITY';
+
 export interface PopularKeyword {
   popularKeywordId: number;
   keyword: string;
   rank: number;
   rankChange: number;
+  isNew: boolean;
+  searchType: SearchType;
   searchCount: number | null;
 }
 
