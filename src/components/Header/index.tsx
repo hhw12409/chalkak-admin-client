@@ -4,7 +4,6 @@ import DarkModeSwitcher from "./DarkModeSwitcher";
 import DropdownMessage from "./DropdownMessage";
 import DropdownNotification from "./DropdownNotification";
 import DropdownUser from "./DropdownUser";
-import Image from "next/image";
 
 const SearchBar = dynamic(() => import("./SearchBar"), { ssr: false });
 
@@ -60,10 +59,11 @@ const Header = (props: {
           {/* <!-- Hamburger Toggle BTN --> */}
 
           <Link className="block flex-shrink-0 lg:hidden" href="/">
-            <Image
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/admin/images/logo/logo-icon.svg"
               width={32}
               height={32}
-              src={"/images/logo/logo-icon.svg"}
               alt="Logo"
             />
           </Link>

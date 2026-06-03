@@ -28,6 +28,7 @@ const SignUp: React.FC = () => {
                   alt="Logo"
                   width={176}
                   height={32}
+                  unoptimized
                 />
                 <Image
                   className="dark:hidden"
@@ -35,6 +36,7 @@ const SignUp: React.FC = () => {
                   alt="Logo"
                   width={176}
                   height={32}
+                  unoptimized
                 />
               </Link>
               <p className="2xl:px-20">
