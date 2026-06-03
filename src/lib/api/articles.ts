@@ -1,5 +1,5 @@
 import { request, buildParams } from '@/lib/apiClient';
-import { AdminArticle, PageResponse } from '@/types/admin';
+import { AdminArticle, AdminArticleComment, PageResponse } from '@/types/admin';
 
 export const articlesApi = {
   getArticles: (params: {
@@ -40,4 +40,7 @@ export const articlesApi = {
 
   getTopArticles: (sortBy: 'READ_COUNT' | 'LIKE_COUNT' = 'READ_COUNT', limit = 10) =>
     request<AdminArticle[]>(`/articles/top?sortBy=${sortBy}&limit=${limit}`),
+
+  getArticleComments: (articleId: number) =>
+    request<AdminArticleComment[]>(`/articles/${articleId}/comments`),
 };

@@ -91,6 +91,8 @@ export interface AdminArticle {
   content: string;
   readCount: number | null;
   likeCount: number | null;
+  actualLikeCount?: number;  // 실제 like 테이블 카운트 (없으면 likeCount 폴백)
+  commentCount?: number;     // 댓글 수
   location?: string;
   latitude?: number;
   longitude?: number;
@@ -235,6 +237,19 @@ export interface AdminComment {
   reportCount?: number;
 }
 
+export interface AdminArticleComment {
+  articleCommentId: number;
+  articleId: number;
+  userId: number;
+  comment: string;
+  status: string;
+  isHidden: boolean;
+  parentCommentId: number | null;
+  authorNickname: string | null;
+  authorUsername: string | null;
+  createdAt: string;
+}
+
 export interface AdminCommentDetail extends AdminComment {
   articleTitle?: string;
   authorNickname?: string;
@@ -242,6 +257,78 @@ export interface AdminCommentDetail extends AdminComment {
   updatedAt?: string;
   reportCount: number;
 }
+
+export type SpotRankingPeriod = 'ALL_TIME' | 'WEEKLY' | 'MONTHLY';
+
+export interface SpotRanking {
+  rank: number;
+  locationName: string | null;
+  latitude: number;
+  longitude: number;
+  articleCount: number;
+  totalLikes: number;
+  thumbnailUrl: string | null;
+}
+
+export type NoticeCategory = 'SERVICE' | 'UPDATE' | 'EVENT' | 'NOTICE';
+
+export interface Notice {
+  noticeId: number;
+  title: string;
+  content: string;
+  category: NoticeCategory;
+  categoryLabel: string;
+  isActive: boolean;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoticeCreatePayload {
+  title: string;
+  content: string;
+  category: NoticeCategory;
+  isActive?: boolean;
+  isPinned?: boolean;
+}
+
+export type NoticeUpdatePayload = Partial<NoticeCreatePayload>;
+
+export type EventStatus = 'UPCOMING' | 'ONGOING' | 'ENDED';
+
+export interface AdminEvent {
+  eventId: number;
+  title: string;
+  description: string | null;
+  bannerImageUrl: string | null;
+  eventStatus: EventStatus;
+  eventStatusLabel: string;
+  startDate: string;
+  endDate: string;
+  participantCount: number;
+  prizes: string | null;
+  rules: string | null;
+  cautions: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventCreatePayload {
+  title: string;
+  description?: string | null;
+  bannerImageUrl?: string | null;
+  eventStatus: EventStatus;
+  startDate: string;
+  endDate: string;
+  participantCount?: number;
+  prizes?: string | null;
+  rules?: string | null;
+  cautions?: string | null;
+  isActive?: boolean;
+}
+
+export type EventUpdatePayload = Partial<EventCreatePayload>;
 
 export interface PagedResponseDto<T> {
   data: T[];

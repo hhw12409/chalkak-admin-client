@@ -1,198 +1,18 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { articlesApi } from "@/lib/api/articles";
-import { keywordsApi } from "@/lib/api/keywords";
-import { AdminArticle, PopularKeyword } from "@/types/admin";
+import React, { useState } from "react";
+import SpotRankingPanel from "@/components/Rankings/SpotRankingPanel";
+import MetricsPanel from "@/components/Rankings/MetricsPanel";
 
-type SortType = "READ_COUNT" | "LIKE_COUNT";
+type TabKey = "service" | "metrics";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
-
-function ArticleRankTable({
-  title,
-  sortBy,
-}: {
-  title: string;
-  sortBy: SortType;
-}) {
-  const [data, setData] = useState<AdminArticle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    setLoading(true);
-    articlesApi
-      .getTopArticles(sortBy, 10)
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [sortBy]);
-
-  const metric = (a: AdminArticle) =>
-    sortBy === "LIKE_COUNT" ? a.likeCount ?? 0 : a.readCount ?? 0;
-
-  return (
-    <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-      <div className="border-b border-stroke px-6 py-4 dark:border-strokedark">
-        <h2 className="font-semibold text-black dark:text-white">{title}</h2>
-      </div>
-
-      {error && (
-        <p className="px-6 py-4 text-sm text-red-500">{error}</p>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
-              <th className="px-4 py-3 text-left font-medium w-12">순위</th>
-              <th className="px-4 py-3 text-left font-medium">제목</th>
-              <th className="px-4 py-3 text-left font-medium w-20">작성자</th>
-              <th className="px-4 py-3 text-right font-medium w-24">
-                {sortBy === "LIKE_COUNT" ? "좋아요" : "조회수"}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                  불러오는 중...
-                </td>
-              </tr>
-            ) : data.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                  데이터 없음
-                </td>
-              </tr>
-            ) : (
-              data.map((article, idx) => (
-                <tr
-                  key={article.articleId}
-                  className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4"
-                >
-                  <td className="px-4 py-3 text-center font-bold">
-                    {idx < 3 ? (
-                      <span className="text-base">{MEDALS[idx]}</span>
-                    ) : (
-                      <span className="text-gray-500">{idx + 1}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 max-w-xs">
-                    <span className="line-clamp-1 font-medium text-black dark:text-white">
-                      {article.title}
-                    </span>
-                    {article.category && (
-                      <span className="ml-1 text-xs text-gray-400">
-                        [{article.category}]
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    #{article.userId}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
-                    {metric(article).toLocaleString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function KeywordRankTable() {
-  const [data, setData] = useState<PopularKeyword[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    keywordsApi
-      .getPopularKeywords()
-      .then((list) => setData(list.slice(0, 10)))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const rankChangeLabel = (change: number) => {
-    if (change > 0)
-      return <span className="text-xs font-medium text-meta-3">▲{change}</span>;
-    if (change < 0)
-      return (
-        <span className="text-xs font-medium text-meta-1">
-          ▼{Math.abs(change)}
-        </span>
-      );
-    return <span className="text-xs text-gray-400">-</span>;
-  };
-
-  return (
-    <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-      <div className="border-b border-stroke px-6 py-4 dark:border-strokedark">
-        <h2 className="font-semibold text-black dark:text-white">
-          인기 검색어 TOP 10
-        </h2>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
-              <th className="px-4 py-3 text-left font-medium w-12">순위</th>
-              <th className="px-4 py-3 text-left font-medium">키워드</th>
-              <th className="px-4 py-3 text-left font-medium w-16">변동</th>
-              <th className="px-4 py-3 text-right font-medium w-24">검색 수</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                  불러오는 중...
-                </td>
-              </tr>
-            ) : data.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
-                  데이터 없음
-                </td>
-              </tr>
-            ) : (
-              data.map((kw, idx) => (
-                <tr
-                  key={kw.keyword}
-                  className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4"
-                >
-                  <td className="px-4 py-3 text-center font-bold">
-                    {idx < 3 ? (
-                      <span className="text-base">{MEDALS[idx]}</span>
-                    ) : (
-                      <span className="text-gray-500">{kw.rank}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-black dark:text-white">
-                    {kw.keyword}
-                  </td>
-                  <td className="px-4 py-3">
-                    {rankChangeLabel(kw.rankChange)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold text-primary">
-                    {kw.searchCount.toLocaleString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "service", label: "랭킹 관리" },
+  { key: "metrics", label: "지표 분석" },
+];
 
 export default function RankingClient() {
+  const [tab, setTab] = useState<TabKey>("service");
+
   return (
     <div>
       <div className="mb-6">
@@ -200,17 +20,29 @@ export default function RankingClient() {
           랭킹 관리
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          활성 게시글 기준 실시간 랭킹입니다.
+          탭1은 실제 사용자에게 노출되는 랭킹입니다. 탭2는 분석용 지표입니다.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 mb-6">
-        <ArticleRankTable title="조회수 TOP 10 게시글" sortBy="READ_COUNT" />
-        <ArticleRankTable title="좋아요 TOP 10 게시글" sortBy="LIKE_COUNT" />
+      <div className="flex gap-2 border-b border-stroke dark:border-strokedark">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              tab === t.key
+                ? "border-b-2 border-primary text-primary"
+                : "text-gray-500 hover:text-black dark:hover:text-white"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <KeywordRankTable />
+      <div className="mt-6">
+        {tab === "service" ? <SpotRankingPanel /> : <MetricsPanel />}
       </div>
     </div>
   );

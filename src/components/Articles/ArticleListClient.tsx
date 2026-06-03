@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { articlesApi } from "@/lib/api/articles";
 import { usersApi } from "@/lib/api/users";
-import { AdminArticle, AdminUser, PageResponse } from "@/types/admin";
+import { AdminArticle, AdminArticleComment, AdminUser, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
 
 const statusLabel: Record<string, string> = {
@@ -54,6 +54,10 @@ export default function ArticleListClient() {
   const [authorModalUserId, setAuthorModalUserId] = useState<number | null>(null);
   const [authorModalData, setAuthorModalData] = useState<AdminUser | null>(null);
   const [authorModalLoading, setAuthorModalLoading] = useState(false);
+  const [detailTab, setDetailTab] = useState<"info" | "comments">("info");
+  const [articleComments, setArticleComments] = useState<AdminArticleComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsError, setCommentsError] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -119,6 +123,27 @@ export default function ArticleListClient() {
       load(0, val, status, isHidden);
     }, 300);
   };
+
+  const loadArticleComments = async (id: number) => {
+    setCommentsLoading(true);
+    setCommentsError("");
+    try {
+      const list = await articlesApi.getArticleComments(id);
+      setArticleComments(list);
+    } catch (e: unknown) {
+      setArticleComments([]);
+      setCommentsError(e instanceof Error ? e.message : "댓글을 불러올 수 없습니다.");
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (detailModal && detailTab === "comments") {
+      loadArticleComments(detailModal.articleId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailTab, detailModal?.articleId]);
 
   const refreshDetail = async (id: number) => {
     setDetailLoading(true);
@@ -330,7 +355,9 @@ export default function ArticleListClient() {
                 <th className="px-4 py-3 text-left font-medium">작성자</th>
                 <th className="px-4 py-3 text-left font-medium">상태</th>
                 <th className="px-4 py-3 text-left font-medium">숨김</th>
-                <th className="px-4 py-3 text-left font-medium">조회/좋아요</th>
+                <th className="px-4 py-3 text-left font-medium">조회</th>
+                <th className="px-4 py-3 text-left font-medium">좋아요</th>
+                <th className="px-4 py-3 text-left font-medium">댓글</th>
                 <th className="px-4 py-3 text-left font-medium">작성일</th>
                 <th className="px-4 py-3 text-left font-medium">상세</th>
                 <th className="px-4 py-3 text-left font-medium">액션</th>
@@ -338,9 +365,9 @@ export default function ArticleListClient() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
               ) : data?.content.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">게시글이 없습니다</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">게시글이 없습니다</td></tr>
               ) : (
                 data?.content.map((article) => (
                   <tr key={article.articleId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
@@ -377,12 +404,17 @@ export default function ArticleListClient() {
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{article.readCount ?? 0} / {article.likeCount ?? 0}</td>
+                    <td className="px-4 py-3 text-gray-500">{article.readCount ?? 0}</td>
+                    <td className="px-4 py-3 text-gray-500">{article.actualLikeCount ?? article.likeCount ?? 0}</td>
+                    <td className="px-4 py-3 text-gray-500">{article.commentCount ?? 0}</td>
                     <td className="px-4 py-3 text-gray-500">{article.createdAt?.slice(0, 10)}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={async () => {
                           setCurrentImageIndex(0);
+                          setDetailTab("info");
+                          setArticleComments([]);
+                          setCommentsError("");
                           setDetailLoading(true);
                           setDetailModal(article);
                           try {
@@ -502,6 +534,86 @@ export default function ArticleListClient() {
               </button>
             </div>
 
+            {/* Tabs */}
+            <div className="mb-4 flex border-b border-stroke dark:border-strokedark">
+              <button
+                onClick={() => setDetailTab("info")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  detailTab === "info"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-gray-500 hover:text-black dark:hover:text-white"
+                }`}
+              >
+                상세 정보
+              </button>
+              <button
+                onClick={() => setDetailTab("comments")}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  detailTab === "comments"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-gray-500 hover:text-black dark:hover:text-white"
+                }`}
+              >
+                댓글 {detailModal.commentCount != null && `(${detailModal.commentCount})`}
+              </button>
+            </div>
+
+            {detailTab === "comments" ? (
+              <div className="mb-4">
+                {commentsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : commentsError ? (
+                  <div className="rounded border border-stroke p-4 text-center text-sm text-meta-1 dark:border-strokedark">
+                    {commentsError}
+                  </div>
+                ) : articleComments.length === 0 ? (
+                  <div className="rounded border border-dashed border-stroke p-8 text-center text-sm text-gray-400 dark:border-strokedark">
+                    댓글이 없습니다
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {articleComments.map((c) => (
+                      <li
+                        key={c.articleCommentId}
+                        className={`rounded border border-stroke p-3 dark:border-strokedark ${
+                          c.status === "DELETED" || c.isHidden ? "bg-gray-1 dark:bg-meta-4" : ""
+                        }`}
+                      >
+                        <div className="mb-1 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="font-medium text-black dark:text-white">
+                            {c.authorNickname || c.authorUsername || `#${c.userId}`}
+                          </span>
+                          <span className="text-gray-400">
+                            {c.createdAt?.slice(0, 10)}
+                          </span>
+                          {c.parentCommentId != null && (
+                            <span className="rounded bg-gray-2 px-1.5 py-0.5 text-gray-500 dark:bg-meta-4 dark:text-gray-400">
+                              ↳ 대댓글
+                            </span>
+                          )}
+                          {c.isHidden && (
+                            <span className="rounded bg-meta-6/10 px-1.5 py-0.5 font-medium text-meta-6">
+                              숨김
+                            </span>
+                          )}
+                          {c.status === "DELETED" && (
+                            <span className="rounded bg-meta-5/10 px-1.5 py-0.5 font-medium text-meta-5">
+                              삭제됨
+                            </span>
+                          )}
+                        </div>
+                        <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                          {c.comment}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <>
             {/* Meta */}
             <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-gray-600 dark:text-gray-400">
               <p><span className="font-medium">게시글 ID:</span> {detailModal.articleId}</p>
@@ -534,7 +646,18 @@ export default function ArticleListClient() {
                 }
               </p>
               <p><span className="font-medium">조회수:</span> {(detailModal.readCount ?? 0).toLocaleString()}</p>
-              <p><span className="font-medium">좋아요:</span> {(detailModal.likeCount ?? 0).toLocaleString()}</p>
+              <p>
+                <span className="font-medium">좋아요:</span>{" "}
+                {(detailModal.actualLikeCount ?? detailModal.likeCount ?? 0).toLocaleString()}
+                {detailModal.actualLikeCount != null &&
+                  detailModal.likeCount != null &&
+                  detailModal.actualLikeCount !== detailModal.likeCount && (
+                    <span className="ml-1 text-xs text-gray-400">
+                      (캐시: {detailModal.likeCount.toLocaleString()})
+                    </span>
+                  )}
+              </p>
+              <p><span className="font-medium">댓글 수:</span> {(detailModal.commentCount ?? 0).toLocaleString()}</p>
               {detailModal.location && (
                 <p className="col-span-2"><span className="font-medium">위치:</span> {detailModal.location}</p>
               )}
@@ -629,6 +752,8 @@ export default function ArticleListClient() {
                 </div>
               )}
             </div>
+              </>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-2">

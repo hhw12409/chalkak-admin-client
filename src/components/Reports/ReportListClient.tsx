@@ -196,6 +196,16 @@ export default function ReportListClient() {
                         주요사유: {reasonLabel[report.topReason] ?? report.topReason}
                       </span>
                     </div>
+                    {report.isProcessed && report.resolveReason && (
+                      <div className="mt-1.5 flex items-start gap-1.5">
+                        <span className="shrink-0 rounded bg-gray-200 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-meta-4 dark:text-gray-300">
+                          처리코멘트
+                        </span>
+                        <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words">
+                          {report.resolveReason}
+                        </span>
+                      </div>
+                    )}
                     {report.targetPreview?.contentPreview && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">{report.targetPreview.contentPreview}</p>
                     )}
@@ -308,10 +318,17 @@ export default function ReportListClient() {
                                 <td className="py-1">{d.reportedAt?.slice(0, 10)}</td>
                                 <td className="py-1">
                                   {d.processedAt ? (
-                                    <span className="rounded bg-success/10 px-1.5 py-0.5 text-success">
-                                      처리됨 · {d.processedAt.slice(0, 10)}
-                                      {d.resolvedAction ? ` · ${actionLabel[d.resolvedAction] ?? d.resolvedAction}` : ''}
-                                    </span>
+                                    <div className="space-y-0.5">
+                                      <span className="rounded bg-success/10 px-1.5 py-0.5 text-success">
+                                        처리됨 · {d.processedAt.slice(0, 10)}
+                                        {d.resolvedAction ? ` · ${actionLabel[d.resolvedAction] ?? d.resolvedAction}` : ''}
+                                      </span>
+                                      {d.resolveReason && (
+                                        <p className="text-gray-500 dark:text-gray-400 break-words">
+                                          {d.resolveReason}
+                                        </p>
+                                      )}
+                                    </div>
                                   ) : (
                                     <span className="text-meta-1">미처리</span>
                                   )}
