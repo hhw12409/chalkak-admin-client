@@ -10,11 +10,15 @@ export function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (!token && !isPublic) {
-    return NextResponse.redirect(new URL('/auth/signin', request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/signin';
+    return NextResponse.redirect(url);
   }
 
   if (token && isPublic) {
-    return NextResponse.redirect(new URL('/', request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

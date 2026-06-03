@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     removeToken();
     setAdmin(null);
-    window.location.href = '/auth/signin';
+    window.location.href = '/admin/auth/signin';
   };
 
   return (

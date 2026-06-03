@@ -44,7 +44,7 @@ export async function request<T>(
 
   if (res.status === 401 && typeof window !== 'undefined') {
     removeToken();
-    window.location.href = '/auth/signin';
+    window.location.href = '/admin/auth/signin';
     throw new Error('Unauthorized');
   }
 
