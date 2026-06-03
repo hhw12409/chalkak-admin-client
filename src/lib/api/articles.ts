@@ -42,5 +42,6 @@ export const articlesApi = {
     request<AdminArticle[]>(`/articles/top?sortBy=${sortBy}&limit=${limit}`),
 
   getArticleComments: (articleId: number) =>
-    request<AdminArticleComment[]>(`/articles/${articleId}/comments`),
+    request<PageResponse<AdminArticleComment>>(`/articles/${articleId}/comments`)
+      .then((page) => page.content),
 };
