@@ -2,6 +2,9 @@ import { request, buildParams } from '@/lib/apiClient';
 import { ReportGroup, ReportDetail, ReportAction } from '@/types/admin';
 
 export const reportsApi = {
+  getUnprocessedCount: () =>
+    request<{ count: number }>('/reports/unprocessed-count'),
+
   getReports: (params: {
     targetType?: string;
     page?: number;
