@@ -3,6 +3,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { auditLogsApi } from "@/lib/api/auditLogs";
 import { AuditLog, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
+import MaskedField from "@/components/common/MaskedField";
+import UnmaskModal from "@/components/common/UnmaskModal";
 
 const targetTypes = ["", "USER", "ARTICLE", "COMMENT", "INQUIRY", "BANNER", "BOARD", "PLACE_TYPE", "ARTICLE_TYPE"];
 
@@ -14,6 +16,7 @@ export default function AuditLogListClient() {
   const [targetType, setTargetType] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [unmaskAuditId, setUnmaskAuditId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = (p: number, aid: string, act: string, tt: string) => {
@@ -126,7 +129,13 @@ export default function AuditLogListClient() {
                       </span>
                     </td>
                     <td className="px-4 py-3 max-w-xs truncate text-gray-500">{log.reason ?? "-"}</td>
-                    <td className="px-4 py-3 text-gray-500">{log.requestIp ?? "-"}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      <MaskedField
+                        value={log.requestIp ?? "-"}
+                        masked={log.requestIpMasked ?? false}
+                        onReveal={() => setUnmaskAuditId(log.auditId)}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{log.createdAt?.slice(0, 16)}</td>
                   </tr>
                 ))
@@ -147,6 +156,19 @@ export default function AuditLogListClient() {
           />
         )}
       </div>
+
+      {unmaskAuditId !== null && (
+        <UnmaskModal
+          targetType="AUDIT_LOG"
+          targetId={unmaskAuditId}
+          fieldLabel="IP 주소"
+          onClose={() => setUnmaskAuditId(null)}
+          onSuccess={() => {
+            setUnmaskAuditId(null);
+            load(page, adminId, action, targetType);
+          }}
+        />
+      )}
     </div>
   );
 }

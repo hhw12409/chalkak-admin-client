@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { adminUsersApi } from "@/lib/api/adminUsers";
 import { AdminUserAccount, AdminRole, AdminUserStatus } from "@/types/admin";
 import { useAuth } from "@/context/AuthContext";
+import MaskedField from "@/components/common/MaskedField";
+import UnmaskModal from "@/components/common/UnmaskModal";
 
 const roleLabel: Record<AdminRole, string> = {
   VIEWER: "조회자",
@@ -29,6 +31,7 @@ export default function AdminUserListClient() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const [submitting, setSubmitting] = useState(false);
+  const [unmaskTarget, setUnmaskTarget] = useState<{ adminId: number; field: string } | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -112,12 +115,13 @@ export default function AdminUserListClient() {
                 <th className="px-4 py-3 text-left font-medium">역할</th>
                 <th className="px-4 py-3 text-left font-medium">상태</th>
                 <th className="px-4 py-3 text-left font-medium">최근 로그인</th>
+                <th className="px-4 py-3 text-left font-medium">최근 IP</th>
                 <th className="px-4 py-3 text-left font-medium">생성일</th>
               </tr>
             </thead>
             <tbody>
               {admins.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">운영자 없음</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">운영자 없음</td></tr>
               ) : (
                 admins.map((a) => {
                   const isSelf = a.adminId === admin?.adminId;
@@ -128,7 +132,13 @@ export default function AdminUserListClient() {
                         {a.username}{isSelf && <span className="ml-1 text-xs text-primary">(나)</span>}
                       </td>
                       <td className="px-4 py-3">{a.name}</td>
-                      <td className="px-4 py-3 text-gray-500">{a.email}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        <MaskedField
+                          value={a.email}
+                          masked={a.emailMasked}
+                          onReveal={() => setUnmaskTarget({ adminId: a.adminId, field: "이메일" })}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         {isSelf ? (
                           <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
@@ -164,6 +174,13 @@ export default function AdminUserListClient() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-500">{a.lastLoginAt?.slice(0, 16) ?? "-"}</td>
+                      <td className="px-4 py-3 text-gray-500">
+                        <MaskedField
+                          value={a.lastLoginIp ?? "-"}
+                          masked={a.lastLoginIpMasked ?? false}
+                          onReveal={() => setUnmaskTarget({ adminId: a.adminId, field: "IP 주소" })}
+                        />
+                      </td>
                       <td className="px-4 py-3 text-gray-500">{a.createdAt?.slice(0, 10)}</td>
                     </tr>
                   );
@@ -173,6 +190,19 @@ export default function AdminUserListClient() {
           </table>
         </div>
       </div>
+
+      {unmaskTarget && (
+        <UnmaskModal
+          targetType="ADMIN_USER"
+          targetId={unmaskTarget.adminId}
+          fieldLabel={unmaskTarget.field}
+          onClose={() => setUnmaskTarget(null)}
+          onSuccess={() => {
+            setUnmaskTarget(null);
+            load();
+          }}
+        />
+      )}
 
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { usersApi } from "@/lib/api/users";
 import { AdminUser, UserSanction, SanctionLevel } from "@/types/admin";
+import MaskedField from "@/components/common/MaskedField";
+import UnmaskModal from "@/components/common/UnmaskModal";
 
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
 
@@ -30,6 +32,8 @@ export default function UserDetailClient({ userId }: Props) {
   const [level, setLevel] = useState<SanctionLevel>("WARNING");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showUnmaskModal, setShowUnmaskModal] = useState(false);
+  const [unmaskField, setUnmaskField] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -93,7 +97,16 @@ export default function UserDetailClient({ userId }: Props) {
           </button>
           <div>
             <p className="text-lg font-semibold text-black dark:text-white">{user.nickname}</p>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <p className="text-sm text-gray-500">
+              <MaskedField
+                value={user.email}
+                masked={user.emailMasked}
+                onReveal={() => {
+                  setUnmaskField("이메일");
+                  setShowUnmaskModal(true);
+                }}
+              />
+            </p>
             {!user.profileImage && (
               <p className="mt-0.5 text-xs text-gray-400">프로필 이미지 없음</p>
             )}
@@ -102,7 +115,32 @@ export default function UserDetailClient({ userId }: Props) {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Info label="ID" value={String(user.userId)} />
           <Info label="닉네임" value={user.nickname} />
-          <Info label="이메일" value={user.email} />
+          <div>
+            <span className="text-xs text-gray-500">이메일</span>
+            <p className="font-medium text-black dark:text-white">
+              <MaskedField
+                value={user.email}
+                masked={user.emailMasked}
+                onReveal={() => {
+                  setUnmaskField("이메일");
+                  setShowUnmaskModal(true);
+                }}
+              />
+            </p>
+          </div>
+          <div>
+            <span className="text-xs text-gray-500">전화번호</span>
+            <p className="font-medium text-black dark:text-white">
+              <MaskedField
+                value={user.phoneNumber ?? "-"}
+                masked={user.phoneNumberMasked ?? false}
+                onReveal={() => {
+                  setUnmaskField("전화번호");
+                  setShowUnmaskModal(true);
+                }}
+              />
+            </p>
+          </div>
           <Info label="역할" value={user.role} />
           <Info label="로그인 타입" value={user.snsType ?? "-"} />
           <Info label="상태" value={user.status} />
@@ -182,6 +220,19 @@ export default function UserDetailClient({ userId }: Props) {
             &times;
           </button>
         </div>
+      )}
+
+      {showUnmaskModal && (
+        <UnmaskModal
+          targetType="USER"
+          targetId={userId}
+          fieldLabel={unmaskField}
+          onClose={() => setShowUnmaskModal(false)}
+          onSuccess={() => {
+            setShowUnmaskModal(false);
+            load();
+          }}
+        />
       )}
 
       {showModal && (

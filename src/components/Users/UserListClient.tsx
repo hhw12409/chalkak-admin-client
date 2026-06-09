@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { usersApi } from "@/lib/api/users";
 import { AdminUser, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
+import MaskedField from "@/components/common/MaskedField";
+import UnmaskModal from "@/components/common/UnmaskModal";
 
 const statusLabel: Record<string, string> = {
   ACTIVE: "활성",
@@ -31,6 +33,7 @@ export default function UserListClient() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [unmaskTargetId, setUnmaskTargetId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = (p: number, kw: string, st: string) => {
@@ -108,7 +111,13 @@ export default function UserListClient() {
                   <tr key={user.userId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.userId}</td>
                     <td className="px-4 py-3 font-medium text-black dark:text-white">{user.nickname}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.email}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      <MaskedField
+                        value={user.email}
+                        masked={user.emailMasked}
+                        onReveal={() => setUnmaskTargetId(user.userId)}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
                         user.role === 'ADMIN' ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-600 dark:bg-meta-4 dark:text-gray-300'
@@ -157,6 +166,19 @@ export default function UserListClient() {
           />
         )}
       </div>
+
+      {unmaskTargetId !== null && (
+        <UnmaskModal
+          targetType="USER"
+          targetId={unmaskTargetId}
+          fieldLabel="이메일"
+          onClose={() => setUnmaskTargetId(null)}
+          onSuccess={() => {
+            setUnmaskTargetId(null);
+            load(page, keyword, status);
+          }}
+        />
+      )}
     </div>
   );
 }

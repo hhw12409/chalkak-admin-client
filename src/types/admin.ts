@@ -1,4 +1,5 @@
 export type AdminRole = 'VIEWER' | 'OPERATOR' | 'ADMIN';
+export type UnmaskTargetType = 'USER' | 'ADMIN_USER' | 'AUDIT_LOG';
 export type SanctionLevel = 'WARNING' | 'SUSPEND_7D' | 'SUSPEND_30D' | 'PERMANENT';
 export type SanctionStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
 export type ReportAction = 'HIDE_CONTENT' | 'DELETE_CONTENT' | 'REJECT_REPORT' | 'WARN_USER';
@@ -54,8 +55,10 @@ export interface AdminUser {
   userId: number;
   username: string;
   email: string;
+  emailMasked: boolean;
   nickname: string;
   phoneNumber?: string;
+  phoneNumberMasked: boolean;
   profileImage?: string;
   introduction?: string;
   snsType?: string;
@@ -180,6 +183,7 @@ export interface AuditLog {
   reason?: string;
   metadata?: string;
   requestIp?: string;
+  requestIpMasked: boolean;
   result: AuditResult;
   errorMessage?: string;
   createdAt: string;
@@ -222,10 +226,12 @@ export interface AdminUserAccount {
   username: string;
   name: string;
   email: string;
+  emailMasked: boolean;
   role: AdminRole;
   status: AdminUserStatus;
   lastLoginAt?: string;
   lastLoginIp?: string;
+  lastLoginIpMasked: boolean;
   createdAt: string;
 }
 
