@@ -2,20 +2,22 @@
 import React from "react";
 
 interface MaskedFieldProps {
-  value: string;
+  // ADM-C-QA-006: value를 nullable로 받아 호출부의 가드 누락에도 'null' 문자열 노출이 발생하지 않도록 한다.
+  value: string | null | undefined;
   masked: boolean;
   onReveal?: () => void;
   className?: string;
 }
 
 export default function MaskedField({ value, masked, onReveal, className }: MaskedFieldProps) {
+  const display = value == null || value === "" ? "-" : value;
   if (!masked) {
-    return <span className={className}>{value}</span>;
+    return <span className={className}>{display}</span>;
   }
 
   return (
     <span className={`inline-flex items-center gap-1.5 ${className ?? ""}`}>
-      <span>{value}</span>
+      <span>{display}</span>
       {onReveal && (
         <button
           type="button"
