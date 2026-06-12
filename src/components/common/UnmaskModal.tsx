@@ -50,6 +50,10 @@ export default function UnmaskModal({
         targetId,
         reason: trimmed,
       });
+      // ADM-C-QA-003: 이미 활성 권한이 있는 경우 사용자에게 명확히 안내
+      if (result.alreadyGranted) {
+        window.alert("이미 활성 권한이 있어 추가 발급 없이 그대로 열람합니다.");
+      }
       onSuccess(result.expiresAt);
       onClose();
     } catch (err: unknown) {

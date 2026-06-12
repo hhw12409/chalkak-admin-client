@@ -8,15 +8,22 @@ export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+// ADM-C-SEC-001 (부분): SameSite=Strict + Secure(프로덕션)로 강화.
+// HttpOnly 전면 전환은 서버 측 Set-Cookie 기반 재설계가 필요하므로 본 세션 미적용.
+function buildCookieAttrs(): string {
+  const isProd = process.env.NODE_ENV === 'production';
+  return `path=/; SameSite=Strict${isProd ? '; Secure' : ''}`;
+}
+
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
-  document.cookie = `admin_token=${token}; path=/; SameSite=Lax`;
+  document.cookie = `admin_token=${token}; ${buildCookieAttrs()}`;
 }
 
 export function removeToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ADMIN_INFO_KEY);
-  document.cookie = 'admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  document.cookie = `admin_token=; ${buildCookieAttrs()}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 }
 
 function buildParams(params: Record<string, string | number | boolean | undefined | null>): string {
@@ -46,6 +53,14 @@ export async function request<T>(
     removeToken();
     window.location.href = '/admin/auth/signin';
     throw new Error('Unauthorized');
+  }
+
+  // ADM-C-SEC-003: 403 / 419 에러를 401과 구분해 사용자에게 명확히 안내
+  if (res.status === 403) {
+    throw new Error('이 작업을 수행할 권한이 없습니다.');
+  }
+  if (res.status === 419) {
+    throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
   }
 
   const body = await res.json();
