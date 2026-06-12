@@ -59,6 +59,16 @@ export async function request<T>(
   if (res.status === 403) {
     throw new Error('이 작업을 수행할 권한이 없습니다.');
   }
+  if (res.status === 404) {
+    let message = '대상을 찾을 수 없습니다.';
+    try {
+      const body = await res.json();
+      if (body?.message) message = body.message;
+    } catch {
+      // body 파싱 실패 시 기본 메시지 사용
+    }
+    throw new Error(message);
+  }
   if (res.status === 419) {
     throw new Error('세션이 만료되었습니다. 다시 로그인해주세요.');
   }

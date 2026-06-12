@@ -177,6 +177,29 @@ const menuGroups = [
       },
     ],
   },
+  {
+    name: "리텐션 콘솔",
+    menuItems: [
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.5L11.295 6.15L16.5 6.91L12.75 10.57L13.635 15.75L9 13.3L4.365 15.75L5.25 10.57L1.5 6.91L6.705 6.15L9 1.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none"/>
+          </svg>
+        ),
+        label: "미션",
+        route: "/missions",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.125C6.31 1.125 4.125 3.31 4.125 6C4.125 7.71 5.025 9.21 6.375 10.05V16.5L9 14.625L11.625 16.5V10.05C12.975 9.21 13.875 7.71 13.875 6C13.875 3.31 11.69 1.125 9 1.125ZM9 9.375C7.13 9.375 5.625 7.87 5.625 6C5.625 4.13 7.13 2.625 9 2.625C10.87 2.625 12.375 4.13 12.375 6C12.375 7.87 10.87 9.375 9 9.375Z" fill=""/>
+          </svg>
+        ),
+        label: "뱃지",
+        route: "/badges",
+      },
+    ],
+  },
 ];
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
