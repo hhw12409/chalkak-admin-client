@@ -132,6 +132,7 @@ export default function BadgeDetailClient({ badgeKey }: Props) {
             <BadgeIcon
               name={badge.name}
               iconUrl={badge.iconUrl}
+              iconKey={badge.iconKey}
               category={badge.category}
               size="lg"
             />
@@ -155,6 +156,7 @@ export default function BadgeDetailClient({ badgeKey }: Props) {
             />
             <Row label="숨김" value={badge.hidden ? "예" : "아니오"} />
             <Row label="아이콘 URL" value={badge.iconUrl ?? "-"} />
+            <Row label="Lucide 아이콘" value={badge.iconKey ?? "-"} />
             <Row label="생성일" value={badge.createdAt} />
             <Row label="수정일" value={badge.updatedAt} />
           </dl>

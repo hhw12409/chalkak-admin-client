@@ -13,6 +13,7 @@ export interface Badge {
   name: string;
   description: string;
   iconUrl: string | null;
+  iconKey: string | null;
   category: BadgeCategory;
   conditionType: BadgeConditionType;
   conditionValue: number;
@@ -29,6 +30,7 @@ export interface BadgeCreatePayload {
   name: string;
   description: string;
   iconUrl?: string | null;
+  iconKey?: string | null;
   category: BadgeCategory;
   conditionType: BadgeConditionType;
   conditionValue: number;
@@ -41,6 +43,7 @@ export interface BadgeUpdatePayload {
   name?: string;
   description?: string;
   iconUrl?: string | null;
+  iconKey?: string | null;
   category?: BadgeCategory;
   conditionType?: BadgeConditionType;
   conditionValue?: number;

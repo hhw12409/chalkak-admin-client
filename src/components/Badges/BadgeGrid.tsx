@@ -41,6 +41,7 @@ export default function BadgeGrid({
               <BadgeIcon
                 name={b.name}
                 iconUrl={b.iconUrl}
+                iconKey={b.iconKey}
                 category={b.category}
                 size="md"
               />

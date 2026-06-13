@@ -1,20 +1,15 @@
 "use client";
 import React, { useState } from "react";
-import {
-  Award,
-  Compass,
-  Feather,
-  Sparkles,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { Award, Compass, Feather, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { BadgeCategory } from "@/types/badge";
+import { getLucideIconByKey } from "@/lib/badgeIcons";
 
 type Size = "sm" | "md" | "lg";
 
 interface Props {
   name: string;
   iconUrl?: string | null;
+  iconKey?: string | null;
   category?: BadgeCategory;
   size?: Size;
 }
@@ -44,20 +39,20 @@ const FALLBACK_GRADIENT = "from-gray-400 to-gray-600";
 export default function BadgeIcon({
   name,
   iconUrl,
+  iconKey,
   category,
   size = "md",
 }: Props) {
   const { box, icon: iconSize } = SIZE_CLASS[size];
   const [imageBroken, setImageBroken] = useState(false);
 
-  const showImage = !!iconUrl && !imageBroken;
-
-  if (showImage) {
+  // 1순위: iconUrl (실제 이미지)
+  if (iconUrl && !imageBroken) {
     return (
       <div className={`${box} overflow-hidden rounded-full bg-gray-2 dark:bg-meta-4`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={iconUrl as string}
+          src={iconUrl}
           alt={name}
           className="h-full w-full object-cover"
           onError={() => setImageBroken(true)}
@@ -66,9 +61,23 @@ export default function BadgeIcon({
     );
   }
 
-  const Icon = category ? CATEGORY_ICON[category] : Award;
   const gradient = category ? CATEGORY_GRADIENT[category] : FALLBACK_GRADIENT;
 
+  // 2순위: iconKey (어드민이 고른 Lucide 아이콘)
+  const KeyedIcon = getLucideIconByKey(iconKey);
+  if (KeyedIcon) {
+    return (
+      <div
+        className={`${box} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient}`}
+        aria-hidden
+      >
+        <KeyedIcon size={iconSize} className="text-white" strokeWidth={2.25} />
+      </div>
+    );
+  }
+
+  // 3순위: 카테고리 기본
+  const Icon = category ? CATEGORY_ICON[category] : Award;
   return (
     <div
       className={`${box} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient}`}

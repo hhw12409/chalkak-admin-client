@@ -11,6 +11,8 @@ import {
   BadgeCreatePayload,
   BadgeUpdatePayload,
 } from "@/types/badge";
+import BadgeIcon from "./BadgeIcon";
+import BadgeIconPicker from "./BadgeIconPicker";
 
 interface CreateMode {
   mode: "create";
@@ -34,6 +36,7 @@ interface FormState {
   name: string;
   description: string;
   iconUrl: string;
+  iconKey: string | null;
   category: BadgeCategory;
   conditionType: BadgeConditionType;
   conditionValue: number;
@@ -50,6 +53,7 @@ function initialForm(props: Props): FormState {
       name: b.name,
       description: b.description,
       iconUrl: b.iconUrl ?? "",
+      iconKey: b.iconKey ?? null,
       category: b.category,
       conditionType: b.conditionType,
       conditionValue: b.conditionValue,
@@ -63,6 +67,7 @@ function initialForm(props: Props): FormState {
     name: "",
     description: "",
     iconUrl: "",
+    iconKey: null,
     category: "WRITING",
     conditionType: "POST_COUNT",
     conditionValue: 1,
@@ -113,12 +118,14 @@ export default function BadgeFormModal(props: Props) {
     setSubmitting(true);
     try {
       const iconUrl = form.iconUrl.trim() || null;
+      const iconKey = form.iconKey || null;
       if (props.mode === "create") {
         await props.onSubmit({
           badgeKey: form.badgeKey,
           name: form.name,
           description: form.description,
           iconUrl,
+          iconKey,
           category: form.category,
           conditionType: form.conditionType,
           conditionValue: form.conditionValue,
@@ -131,6 +138,7 @@ export default function BadgeFormModal(props: Props) {
           name: form.name,
           description: form.description,
           iconUrl,
+          iconKey,
           category: form.category,
           conditionType: form.conditionType,
           conditionValue: form.conditionValue,
@@ -230,11 +238,36 @@ export default function BadgeFormModal(props: Props) {
                 setForm((f) => ({ ...f, iconUrl: e.target.value }))
               }
               maxLength={500}
-              placeholder="비워두면 카테고리별 기본 아이콘으로 표시됩니다"
+              placeholder="https://... (선택)"
               className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input dark:text-white"
             />
             <p className="mt-1 text-xs text-gray-500">
-              실제 이미지 URL을 입력하지 않으면 클라이언트는 카테고리별 기본 그라데이션 아이콘을 표시합니다.
+              이미지 URL이 있으면 최우선으로 표시됩니다.
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-sm font-medium">
+                Lucide 아이콘 {form.iconKey && <span className="ml-1 font-mono text-xs text-gray-500">({form.iconKey})</span>}
+              </label>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>미리보기</span>
+                <BadgeIcon
+                  name={form.name || "preview"}
+                  iconUrl={form.iconUrl.trim() || null}
+                  iconKey={form.iconKey}
+                  category={form.category}
+                  size="sm"
+                />
+              </div>
+            </div>
+            <BadgeIconPicker
+              value={form.iconKey}
+              onChange={(key) => setForm((f) => ({ ...f, iconKey: key }))}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              이미지 URL이 없을 때 사용됩니다. 둘 다 비워두면 카테고리별 기본 아이콘.
             </p>
           </div>
 
