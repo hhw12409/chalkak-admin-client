@@ -6,6 +6,7 @@ import {
   BADGE_CONDITION_TYPE_LABELS,
   Badge,
 } from "@/types/badge";
+import BadgeIcon from "./BadgeIcon";
 
 interface Props {
   badges: Badge[];
@@ -36,20 +37,13 @@ export default function BadgeGrid({
           }`}
         >
           <div className="mb-3 flex items-start gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-2 dark:bg-meta-4">
-              {b.iconUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={b.iconUrl}
-                  alt={b.name}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                />
-              ) : (
-                <span className="text-xs text-gray-500">no icon</span>
-              )}
+            <div className="shrink-0">
+              <BadgeIcon
+                name={b.name}
+                iconUrl={b.iconUrl}
+                category={b.category}
+                size="md"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <Link

@@ -148,14 +148,6 @@ export default function BadgeFormModal(props: Props) {
 
   const isEdit = props.mode === "edit";
 
-  const fillDefaultIcon = () => {
-    if (!form.badgeKey) return;
-    setForm((f) => ({
-      ...f,
-      iconUrl: `/badges/${form.badgeKey}.png`,
-    }));
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -231,26 +223,19 @@ export default function BadgeFormModal(props: Props) {
 
           <div className="mb-4">
             <label className="mb-1 block text-sm font-medium">아이콘 URL</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={form.iconUrl}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, iconUrl: e.target.value }))
-                }
-                maxLength={500}
-                placeholder="https://... 또는 /badges/KEY.png"
-                className="flex-1 rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input dark:text-white"
-              />
-              <button
-                type="button"
-                onClick={fillDefaultIcon}
-                disabled={!form.badgeKey}
-                className="rounded border border-stroke px-3 py-2 text-xs hover:bg-gray-1 disabled:opacity-50 dark:border-strokedark dark:hover:bg-meta-4"
-              >
-                기본 경로 채우기
-              </button>
-            </div>
+            <input
+              type="text"
+              value={form.iconUrl}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, iconUrl: e.target.value }))
+              }
+              maxLength={500}
+              placeholder="비워두면 카테고리별 기본 아이콘으로 표시됩니다"
+              className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input dark:text-white"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              실제 이미지 URL을 입력하지 않으면 클라이언트는 카테고리별 기본 그라데이션 아이콘을 표시합니다.
+            </p>
           </div>
 
           <div className="mb-4 grid grid-cols-2 gap-4">

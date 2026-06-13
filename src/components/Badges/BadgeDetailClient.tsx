@@ -10,6 +10,7 @@ import {
   BadgeUpdatePayload,
 } from "@/types/badge";
 import BadgeFormModal from "./BadgeFormModal";
+import BadgeIcon from "./BadgeIcon";
 import BadgeStatsChart from "./BadgeStatsChart";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
@@ -127,19 +128,14 @@ export default function BadgeDetailClient({ badgeKey }: Props) {
             뱃지 정보
           </h4>
 
-          {badge.iconUrl && (
-            <div className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-2 dark:bg-meta-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={badge.iconUrl}
-                alt={badge.name}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }}
-              />
-            </div>
-          )}
+          <div className="mb-4">
+            <BadgeIcon
+              name={badge.name}
+              iconUrl={badge.iconUrl}
+              category={badge.category}
+              size="lg"
+            />
+          </div>
 
           <dl className="space-y-3 text-sm">
             <Row label="설명" value={badge.description} />
