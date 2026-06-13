@@ -1,5 +1,7 @@
 export type BadgeCategory = 'WRITING' | 'SOCIAL' | 'EXPLORATION' | 'SEASON';
 
+export type BadgeTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+
 export type BadgeConditionType =
   | 'POST_COUNT'
   | 'COMMENT_COUNT'
@@ -14,6 +16,8 @@ export interface Badge {
   description: string;
   iconUrl: string | null;
   iconKey: string | null;
+  gradientKey: string | null;
+  tier: BadgeTier | null;
   category: BadgeCategory;
   conditionType: BadgeConditionType;
   conditionValue: number;
@@ -31,6 +35,8 @@ export interface BadgeCreatePayload {
   description: string;
   iconUrl?: string | null;
   iconKey?: string | null;
+  gradientKey?: string | null;
+  tier?: BadgeTier | null;
   category: BadgeCategory;
   conditionType: BadgeConditionType;
   conditionValue: number;
@@ -44,6 +50,8 @@ export interface BadgeUpdatePayload {
   description?: string;
   iconUrl?: string | null;
   iconKey?: string | null;
+  gradientKey?: string | null;
+  tier?: BadgeTier | null;
   category?: BadgeCategory;
   conditionType?: BadgeConditionType;
   conditionValue?: number;

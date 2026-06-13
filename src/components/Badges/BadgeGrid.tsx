@@ -42,6 +42,8 @@ export default function BadgeGrid({
                 name={b.name}
                 iconUrl={b.iconUrl}
                 iconKey={b.iconKey}
+                gradientKey={b.gradientKey}
+                tier={b.tier}
                 category={b.category}
                 size="md"
               />

@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import { Award, Compass, Feather, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { BadgeCategory } from "@/types/badge";
 import { getLucideIconByKey } from "@/lib/badgeIcons";
+import { getGradientByKey } from "@/lib/badgeGradients";
+import { getTierByKey } from "@/lib/badgeTiers";
 
 type Size = "sm" | "md" | "lg";
 
@@ -10,6 +12,8 @@ interface Props {
   name: string;
   iconUrl?: string | null;
   iconKey?: string | null;
+  gradientKey?: string | null;
+  tier?: string | null;
   category?: BadgeCategory;
   size?: Size;
 }
@@ -40,16 +44,21 @@ export default function BadgeIcon({
   name,
   iconUrl,
   iconKey,
+  gradientKey,
+  tier,
   category,
   size = "md",
 }: Props) {
   const { box, icon: iconSize } = SIZE_CLASS[size];
   const [imageBroken, setImageBroken] = useState(false);
+  const tierRing = getTierByKey(tier)?.ringClass ?? "";
 
   // 1순위: iconUrl (실제 이미지)
   if (iconUrl && !imageBroken) {
     return (
-      <div className={`${box} overflow-hidden rounded-full bg-gray-2 dark:bg-meta-4`}>
+      <div
+        className={`${box} overflow-hidden rounded-full bg-gray-2 dark:bg-meta-4 ${tierRing}`}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={iconUrl}
@@ -61,14 +70,17 @@ export default function BadgeIcon({
     );
   }
 
-  const gradient = category ? CATEGORY_GRADIENT[category] : FALLBACK_GRADIENT;
+  // 그라데이션: gradientKey > 카테고리 기본 > fallback
+  const gradient =
+    getGradientByKey(gradientKey) ??
+    (category ? CATEGORY_GRADIENT[category] : FALLBACK_GRADIENT);
 
   // 2순위: iconKey (어드민이 고른 Lucide 아이콘)
   const KeyedIcon = getLucideIconByKey(iconKey);
   if (KeyedIcon) {
     return (
       <div
-        className={`${box} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient}`}
+        className={`${box} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient} ${tierRing}`}
         aria-hidden
       >
         <KeyedIcon size={iconSize} className="text-white" strokeWidth={2.25} />
@@ -80,7 +92,7 @@ export default function BadgeIcon({
   const Icon = category ? CATEGORY_ICON[category] : Award;
   return (
     <div
-      className={`${box} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient}`}
+      className={`${box} flex items-center justify-center rounded-full bg-gradient-to-br ${gradient} ${tierRing}`}
       aria-hidden
     >
       <Icon size={iconSize} className="text-white" strokeWidth={2.25} />

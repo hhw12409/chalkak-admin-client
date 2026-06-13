@@ -9,10 +9,13 @@ import {
   BadgeCategory,
   BadgeConditionType,
   BadgeCreatePayload,
+  BadgeTier,
   BadgeUpdatePayload,
 } from "@/types/badge";
 import BadgeIcon from "./BadgeIcon";
 import BadgeIconPicker from "./BadgeIconPicker";
+import BadgeGradientPicker from "./BadgeGradientPicker";
+import BadgeTierPicker from "./BadgeTierPicker";
 
 interface CreateMode {
   mode: "create";
@@ -37,6 +40,8 @@ interface FormState {
   description: string;
   iconUrl: string;
   iconKey: string | null;
+  gradientKey: string | null;
+  tier: BadgeTier | null;
   category: BadgeCategory;
   conditionType: BadgeConditionType;
   conditionValue: number;
@@ -54,6 +59,8 @@ function initialForm(props: Props): FormState {
       description: b.description,
       iconUrl: b.iconUrl ?? "",
       iconKey: b.iconKey ?? null,
+      gradientKey: b.gradientKey ?? null,
+      tier: b.tier ?? null,
       category: b.category,
       conditionType: b.conditionType,
       conditionValue: b.conditionValue,
@@ -68,6 +75,8 @@ function initialForm(props: Props): FormState {
     description: "",
     iconUrl: "",
     iconKey: null,
+    gradientKey: null,
+    tier: null,
     category: "WRITING",
     conditionType: "POST_COUNT",
     conditionValue: 1,
@@ -119,6 +128,8 @@ export default function BadgeFormModal(props: Props) {
     try {
       const iconUrl = form.iconUrl.trim() || null;
       const iconKey = form.iconKey || null;
+      const gradientKey = form.gradientKey || null;
+      const tier = form.tier || null;
       if (props.mode === "create") {
         await props.onSubmit({
           badgeKey: form.badgeKey,
@@ -126,6 +137,8 @@ export default function BadgeFormModal(props: Props) {
           description: form.description,
           iconUrl,
           iconKey,
+          gradientKey,
+          tier,
           category: form.category,
           conditionType: form.conditionType,
           conditionValue: form.conditionValue,
@@ -139,6 +152,8 @@ export default function BadgeFormModal(props: Props) {
           description: form.description,
           iconUrl,
           iconKey,
+          gradientKey,
+          tier,
           category: form.category,
           conditionType: form.conditionType,
           conditionValue: form.conditionValue,
@@ -257,8 +272,10 @@ export default function BadgeFormModal(props: Props) {
                   name={form.name || "preview"}
                   iconUrl={form.iconUrl.trim() || null}
                   iconKey={form.iconKey}
+                  gradientKey={form.gradientKey}
+                  tier={form.tier}
                   category={form.category}
-                  size="sm"
+                  size="md"
                 />
               </div>
             </div>
@@ -269,6 +286,26 @@ export default function BadgeFormModal(props: Props) {
             <p className="mt-1 text-xs text-gray-500">
               이미지 URL이 없을 때 사용됩니다. 둘 다 비워두면 카테고리별 기본 아이콘.
             </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium">
+              그라데이션 색상 {form.gradientKey && <span className="ml-1 font-mono text-xs text-gray-500">({form.gradientKey})</span>}
+            </label>
+            <BadgeGradientPicker
+              value={form.gradientKey}
+              onChange={(key) => setForm((f) => ({ ...f, gradientKey: key }))}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium">
+              뱃지 등급 {form.tier && <span className="ml-1 font-mono text-xs text-gray-500">({form.tier})</span>}
+            </label>
+            <BadgeTierPicker
+              value={form.tier}
+              onChange={(key) => setForm((f) => ({ ...f, tier: key }))}
+            />
           </div>
 
           <div className="mb-4 grid grid-cols-2 gap-4">
