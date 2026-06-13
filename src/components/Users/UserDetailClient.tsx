@@ -1,9 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { usersApi } from "@/lib/api/users";
-import { AdminUser, UserSanction, SanctionLevel } from "@/types/admin";
+import { articlesApi } from "@/lib/api/articles";
+import { AdminUser, AdminArticle, PageResponse, UserSanction, SanctionLevel } from "@/types/admin";
 import MaskedField from "@/components/common/MaskedField";
 import UnmaskModal from "@/components/common/UnmaskModal";
+import Pagination from "@/components/common/Pagination";
 
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
 
@@ -22,6 +24,8 @@ const sanctionStatusLabel: Record<string, string> = {
 
 interface Props { userId: number; }
 
+const ARTICLE_PAGE_SIZE = 10;
+
 export default function UserDetailClient({ userId }: Props) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [sanctions, setSanctions] = useState<UserSanction[]>([]);
@@ -34,6 +38,10 @@ export default function UserDetailClient({ userId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [showUnmaskModal, setShowUnmaskModal] = useState(false);
   const [unmaskField, setUnmaskField] = useState("");
+  const [articles, setArticles] = useState<PageResponse<AdminArticle> | null>(null);
+  const [articlesLoading, setArticlesLoading] = useState(true);
+  const [articlesError, setArticlesError] = useState("");
+  const [articlePage, setArticlePage] = useState(0);
 
   const load = () => {
     setLoading(true);
@@ -43,8 +51,23 @@ export default function UserDetailClient({ userId }: Props) {
       .finally(() => setLoading(false));
   };
 
+  const loadArticles = (p: number) => {
+    setArticlesLoading(true);
+    setArticlesError("");
+    articlesApi
+      .getArticles({ userId, page: p, size: ARTICLE_PAGE_SIZE })
+      .then(setArticles)
+      .catch((e) => setArticlesError(e instanceof Error ? e.message : "게시글 목록을 불러올 수 없습니다."))
+      .finally(() => setArticlesLoading(false));
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [userId]);
+
+  useEffect(() => {
+    loadArticles(articlePage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, articlePage]);
 
   const handleSanction = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,6 +222,80 @@ export default function UserDetailClient({ userId }: Props) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+        <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-strokedark">
+          <h2 className="font-semibold text-black dark:text-white">
+            작성 게시글
+            {articles && (
+              <span className="ml-2 text-sm font-normal text-gray-500">
+                총 {articles.totalElements.toLocaleString()}건
+              </span>
+            )}
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
+                <th className="px-4 py-3 text-left font-medium">ID</th>
+                <th className="px-4 py-3 text-left font-medium">제목</th>
+                <th className="px-4 py-3 text-left font-medium">상태</th>
+                <th className="px-4 py-3 text-left font-medium">숨김</th>
+                <th className="px-4 py-3 text-left font-medium">좋아요</th>
+                <th className="px-4 py-3 text-left font-medium">댓글</th>
+                <th className="px-4 py-3 text-left font-medium">작성일</th>
+              </tr>
+            </thead>
+            <tbody>
+              {articlesLoading ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+              ) : articlesError ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-meta-1">{articlesError}</td></tr>
+              ) : !articles || articles.content.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">작성한 게시글이 없습니다</td></tr>
+              ) : (
+                articles.content.map((article) => (
+                  <tr key={article.articleId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
+                    <td className="px-4 py-3 text-gray-500">{article.articleId}</td>
+                    <td className="px-4 py-3 max-w-xs">
+                      <span className="line-clamp-1 font-medium text-black dark:text-white">{article.title}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${
+                        article.status === "ACTIVE" ? "bg-meta-3/10 text-meta-3" : "bg-meta-5/10 text-meta-5"
+                      }`}>
+                        {article.status === "ACTIVE" ? "활성" : "삭제됨"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {article.isHidden ? (
+                        <span className="rounded bg-meta-6/10 px-2 py-0.5 text-xs font-medium text-meta-6">숨김</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{article.actualLikeCount ?? article.likeCount ?? 0}</td>
+                    <td className="px-4 py-3 text-gray-500">{article.commentCount ?? 0}</td>
+                    <td className="px-4 py-3 text-gray-500">{article.createdAt?.slice(0, 10)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {articles && articles.totalPages > 0 && (
+          <Pagination
+            page={articlePage}
+            totalPages={articles.totalPages}
+            totalElements={articles.totalElements}
+            first={articles.first}
+            last={articles.last}
+            onPageChange={setArticlePage}
+            itemLabel="건"
+          />
+        )}
       </div>
 
       {showImageViewer && user.profileImage && (
