@@ -66,17 +66,48 @@ export interface AdminUser {
   status: string;
   isPrivate: boolean;
   userUuid: string;
-  /** 어드민이 관리하는 직책 라벨 (예: 포토그래퍼). null/빈값이면 클라이언트 미노출. */
+  /**
+   * 어드민이 관리하는 직책 마스터 FK.
+   * @deprecated `title` (자유 텍스트) 는 폐기됨. 마스터 ID/라벨 사용.
+   */
   title?: string | null;
+  /** 어드민이 관리하는 직책 마스터(user_title_tb) FK. null이면 미설정. */
+  titleId?: number | null;
+  /** 직책 마스터의 라벨(예: 포토그래퍼). 서버가 fetch join으로 조립. */
+  titleLabel?: string | null;
   termsAgreedAt?: string;
   privacyAgreedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-/** PATCH /admin/users/{userId}/title 요청 본문. 빈 문자열/null 은 서버에서 null 로 저장. */
+/** 사용자에게 직책 마스터 부여/해제 요청 본문. */
+export interface UserTitleAssignPayload {
+  titleId: number | null;
+}
+
+/** 어드민이 관리하는 직책 마스터(user_title_tb) 한 행. */
+export interface UserTitle {
+  id: number;
+  label: string;
+  displayOrder: number;
+  isActive: boolean;
+  status: 'ACTIVE' | 'DELETED';
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface UserTitleCreatePayload {
+  label: string;
+  /** null/생략 시 서버가 max+1 자동 할당. */
+  displayOrder?: number | null;
+  isActive?: boolean;
+}
+
 export interface UserTitleUpdatePayload {
-  title: string | null;
+  label?: string;
+  displayOrder?: number;
+  isActive?: boolean;
 }
 
 export interface UserSanction {
@@ -215,6 +246,19 @@ export interface PopularKeywordUpdatePayload {
 
 export interface PopularKeywordDeletePayload {
   reason?: string;
+}
+
+// ─── 회원 강제 탈퇴 / 강제 로그아웃 ──────────────────────────────────────────
+/** POST /users/{userId}/force-withdrawal body */
+export interface ForceWithdrawalPayload {
+  reason: string;
+  /** 서버측 닉네임 이중확인. 현재 회원의 닉네임과 정확히 일치해야 함. */
+  confirmNickname: string;
+}
+
+/** POST /users/{userId}/force-logout body */
+export interface ForceLogoutPayload {
+  reason: string;
 }
 
 export interface SearchKeyword {
@@ -369,6 +413,136 @@ export interface PopularRegionCreatePayload {
 }
 
 export type PopularRegionUpdatePayload = Partial<PopularRegionCreatePayload>;
+
+// ─── 포인트 운영 (Point Operations) ────────────────────────────────────────
+export type PointType = 'EARN' | 'USE';
+export type PointSource =
+  | 'ATTENDANCE'
+  | 'MISSION_CLAIM'
+  | 'STREAK_BONUS'
+  | 'ADMIN_GRANT'
+  | 'ADMIN_REVOKE';
+
+/** GET /users/{userId}/points/balance */
+export interface PointBalance {
+  userId: number;
+  balance: number;
+  lastUpdatedAt: string | null;
+}
+
+/** GET /users/{userId}/points/history items */
+export interface PointHistoryItem {
+  historyId: number;
+  pointType: PointType;
+  source: PointSource;
+  /** 서버가 한글 라벨을 동봉 (예: "관리자 적립"). 누락 시 클라이언트가 매핑. */
+  sourceLabel?: string;
+  sourceRefId: number | null;
+  amount: number;
+  balanceAfter: number;
+  title: string;
+  reason: string | null;
+  createdAt: string;
+}
+
+/** GET /users/{userId}/points/history 응답 */
+export interface PointHistoryPage {
+  items: PointHistoryItem[];
+  nextCursor: number | null;
+  hasMore: boolean;
+}
+
+/** POST /users/{userId}/points/grant body */
+export interface PointGrantPayload {
+  amount: number;
+  reason: string;
+}
+
+/** POST /users/{userId}/points/revoke body */
+export interface PointRevokePayload {
+  amount: number;
+  reason: string;
+}
+
+// ─── 운영 콘텐츠 (Terms / FAQ / OSS License) ───────────────────────────────
+
+export type TermType = 'SERVICE' | 'PRIVACY' | 'LOCATION' | 'MARKETING';
+
+export interface Term {
+  termId: number;
+  type: TermType;
+  typeLabel: string;
+  version: string;
+  title: string;
+  content: string;
+  effectiveAt: string;
+  isActive: boolean;
+  isCurrentlyEffective: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface TermCreatePayload {
+  type: TermType;
+  version: string;
+  title: string;
+  content: string;
+  effectiveAt: string;
+  isActive?: boolean;
+}
+
+export type TermUpdatePayload = Partial<TermCreatePayload>;
+
+export type FaqCategory = 'GENERAL' | 'ACCOUNT' | 'POINT' | 'SPOT' | 'COMMUNITY';
+
+export interface Faq {
+  faqId: number;
+  category: FaqCategory;
+  categoryLabel: string;
+  question: string;
+  answer: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface FaqCreatePayload {
+  category: FaqCategory;
+  question: string;
+  answer: string;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+export type FaqUpdatePayload = Partial<FaqCreatePayload>;
+
+export interface OssLicense {
+  ossLicenseId: number;
+  name: string;
+  version: string | null;
+  licenseType: string;
+  copyright: string | null;
+  sourceUrl: string | null;
+  licenseText: string;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface OssLicenseCreatePayload {
+  name: string;
+  version?: string | null;
+  licenseType: string;
+  copyright?: string | null;
+  sourceUrl?: string | null;
+  licenseText: string;
+  displayOrder?: number;
+  isActive?: boolean;
+}
+
+export type OssLicenseUpdatePayload = Partial<OssLicenseCreatePayload>;
 
 export interface PagedResponseDto<T> {
   data: T[];

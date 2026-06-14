@@ -5,6 +5,7 @@ import { articlesApi } from "@/lib/api/articles";
 import { usersApi } from "@/lib/api/users";
 import { AdminArticle, AdminArticleComment, AdminUser, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
+import CsvExportButton from "@/components/common/CsvExportButton";
 
 const statusLabel: Record<string, string> = {
   ACTIVE: "활성",
@@ -13,6 +14,16 @@ const statusLabel: Record<string, string> = {
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
+
+// YYYY-MM-DD → ISO datetime. from은 00:00:00, to는 23:59:59로 보정.
+const toIsoFrom = (d: string) => (d ? `${d}T00:00:00` : undefined);
+const toIsoTo = (d: string) => (d ? `${d}T23:59:59` : undefined);
+const formatYmd = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 interface ActionModalState {
   open: boolean;
@@ -37,6 +48,8 @@ export default function ArticleListClient() {
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [isHidden, setIsHidden] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -96,7 +109,7 @@ export default function ArticleListClient() {
     setAuthorModalData(null);
   };
 
-  const load = (p: number, kw: string, st: string, ih: string) => {
+  const load = (p: number, kw: string, st: string, ih: string, fd: string, td: string) => {
     setLoading(true);
     articlesApi
       .getArticles({
@@ -105,6 +118,8 @@ export default function ArticleListClient() {
         keyword: kw || undefined,
         status: st || undefined,
         isHidden: ih === "" ? undefined : ih === "true",
+        from: toIsoFrom(fd),
+        to: toIsoTo(td),
       })
       .then(setData)
       .catch((e) => setError(e.message))
@@ -112,16 +127,31 @@ export default function ArticleListClient() {
   };
 
   useEffect(() => {
-    load(page, keyword, status, isHidden);
-  }, [page, status, isHidden]); // eslint-disable-line react-hooks/exhaustive-deps
+    load(page, keyword, status, isHidden, fromDate, toDate);
+  }, [page, status, isHidden, fromDate, toDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeywordChange = (val: string) => {
     setKeyword(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(0);
-      load(0, val, status, isHidden);
+      load(0, val, status, isHidden, fromDate, toDate);
     }, 300);
+  };
+
+  const applyRange = (days: number | null) => {
+    if (days === null) {
+      setFromDate("");
+      setToDate("");
+      setPage(0);
+      return;
+    }
+    const now = new Date();
+    const from = new Date();
+    from.setDate(now.getDate() - (days - 1));
+    setFromDate(formatYmd(from));
+    setToDate(formatYmd(now));
+    setPage(0);
   };
 
   const loadArticleComments = async (id: number) => {
@@ -170,7 +200,7 @@ export default function ArticleListClient() {
         try {
           await articlesApi.hideArticle(id, reason || undefined);
           showToast("게시글이 숨김 처리되었습니다.");
-          load(page, keyword, status, isHidden);
+          load(page, keyword, status, isHidden, fromDate, toDate);
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "숨김 처리 실패", "error");
@@ -193,7 +223,7 @@ export default function ArticleListClient() {
         try {
           await articlesApi.unhideArticle(id);
           showToast("숨김이 해제되었습니다.");
-          load(page, keyword, status, isHidden);
+          load(page, keyword, status, isHidden, fromDate, toDate);
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "숨김 해제 실패", "error");
@@ -218,7 +248,7 @@ export default function ArticleListClient() {
         try {
           await articlesApi.deleteArticle(id, reason);
           showToast("게시글이 삭제되었습니다.");
-          load(page, keyword, status, isHidden);
+          load(page, keyword, status, isHidden, fromDate, toDate);
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "삭제 실패", "error");
@@ -241,7 +271,7 @@ export default function ArticleListClient() {
         try {
           await articlesApi.restoreArticle(id);
           showToast("게시글이 복원되었습니다.");
-          load(page, keyword, status, isHidden);
+          load(page, keyword, status, isHidden, fromDate, toDate);
           onDone?.();
         } catch (e: unknown) {
           showToast(e instanceof Error ? e.message : "복원 실패", "error");
@@ -311,8 +341,21 @@ export default function ArticleListClient() {
         </div>
       )}
 
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-black dark:text-white">콘텐츠 관리</h1>
+        <CsvExportButton
+          exportPath="/articles/export"
+          requiredRole="OPERATOR"
+          label="콘텐츠 CSV"
+          fallbackFilename="chalkak_admin_articles.csv"
+          filterParams={{
+            status,
+            isHidden: isHidden === "" ? undefined : isHidden,
+            keyword,
+            from: toIsoFrom(fromDate),
+            to: toIsoTo(toDate),
+          }}
+        />
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -341,6 +384,50 @@ export default function ArticleListClient() {
           <option value="true">숨김</option>
           <option value="false">공개</option>
         </select>
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+            className="rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
+            aria-label="시작일"
+          />
+          <span className="text-sm text-gray-500">~</span>
+          <input
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+            className="rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
+            aria-label="종료일"
+          />
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => applyRange(7)}
+            className="rounded border border-stroke px-2 py-2 text-xs hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+          >
+            최근 7일
+          </button>
+          <button
+            type="button"
+            onClick={() => applyRange(30)}
+            className="rounded border border-stroke px-2 py-2 text-xs hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+          >
+            최근 30일
+          </button>
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => applyRange(null)}
+              className="rounded border border-stroke px-2 py-2 text-xs hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+            >
+              전체
+            </button>
+          )}
+        </div>
       </div>
 
       {error && <div className="mb-4 text-sm text-red-500">{error}</div>}

@@ -1,11 +1,23 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usersApi } from "@/lib/api/users";
+import { userTitlesApi } from "@/lib/api/userTitles";
 import { articlesApi } from "@/lib/api/articles";
-import { AdminUser, AdminArticle, PageResponse, UserSanction, SanctionLevel } from "@/types/admin";
+import {
+  AdminUser,
+  AdminArticle,
+  PageResponse,
+  UserSanction,
+  SanctionLevel,
+  UserTitle,
+} from "@/types/admin";
 import MaskedField from "@/components/common/MaskedField";
 import UnmaskModal from "@/components/common/UnmaskModal";
 import Pagination from "@/components/common/Pagination";
+import UserPointSection from "@/components/Users/UserPointSection";
+import UserDangerZone from "@/components/Users/UserDangerZone";
+import { useAuth } from "@/context/AuthContext";
 
 const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E";
 
@@ -27,6 +39,8 @@ interface Props { userId: number; }
 const ARTICLE_PAGE_SIZE = 10;
 
 export default function UserDetailClient({ userId }: Props) {
+  const { admin } = useAuth();
+  const isAdmin = admin?.role === "ADMIN";
   const [user, setUser] = useState<AdminUser | null>(null);
   const [sanctions, setSanctions] = useState<UserSanction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,9 +57,15 @@ export default function UserDetailClient({ userId }: Props) {
   const [articlesError, setArticlesError] = useState("");
   const [articlePage, setArticlePage] = useState(0);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState("");
+  /** "" 면 미선택, 숫자 문자열은 직책 마스터 id */
+  const [titleIdDraft, setTitleIdDraft] = useState<string>("");
   const [titleSubmitting, setTitleSubmitting] = useState(false);
   const [titleError, setTitleError] = useState("");
+  /** 활성 직책 마스터 캐시 (마운트 시 1회 fetch + 편집 진입 시 lazy refresh 가능) */
+  const titlesCacheRef = useRef<UserTitle[] | null>(null);
+  const [activeTitles, setActiveTitles] = useState<UserTitle[]>([]);
+  const [titlesLoading, setTitlesLoading] = useState(false);
+  const [titlesError, setTitlesError] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -73,6 +93,25 @@ export default function UserDetailClient({ userId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, articlePage]);
 
+  // 마운트 시 1회 활성 직책 마스터 캐시
+  useEffect(() => {
+    if (titlesCacheRef.current !== null) return;
+    setTitlesLoading(true);
+    setTitlesError("");
+    userTitlesApi
+      .list({ activeOnly: true })
+      .then((rows) => {
+        titlesCacheRef.current = rows;
+        setActiveTitles(rows);
+      })
+      .catch((e) =>
+        setTitlesError(
+          e instanceof Error ? e.message : "활성 직책 목록을 불러오지 못했습니다."
+        )
+      )
+      .finally(() => setTitlesLoading(false));
+  }, []);
+
   const handleSanction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason.trim()) return;
@@ -90,29 +129,48 @@ export default function UserDetailClient({ userId }: Props) {
   };
 
   const startEditTitle = () => {
-    setTitleDraft(user?.title ?? "");
+    setTitleIdDraft(user?.titleId != null ? String(user.titleId) : "");
     setTitleError("");
     setEditingTitle(true);
   };
 
   const cancelEditTitle = () => {
     setEditingTitle(false);
-    setTitleDraft("");
+    setTitleIdDraft("");
     setTitleError("");
   };
 
+  /** 선택된 draft가 비활성/삭제된 임시 옵션인지 여부 (옵션 B 가드용) */
+  const isInactiveDraft = (() => {
+    if (titleIdDraft === "") return false;
+    const parsed = Number(titleIdDraft);
+    if (!Number.isFinite(parsed) || parsed <= 0) return false;
+    return !activeTitles.some((t) => t.id === parsed);
+  })();
+
   const submitTitle = async () => {
-    const trimmed = titleDraft.trim();
-    if (trimmed.length > 30) {
-      setTitleError("직책은 30자 이하로 입력해주세요.");
+    const parsedId: number | null =
+      titleIdDraft === "" ? null : Number(titleIdDraft);
+    if (parsedId !== null && (!Number.isFinite(parsedId) || parsedId <= 0)) {
+      setTitleError("유효하지 않은 직책 선택입니다.");
+      return;
+    }
+    // 옵션 B: 사전 검증 — 비활성/삭제된 직책은 부여 불가
+    if (
+      parsedId !== null &&
+      !activeTitles.some((t) => t.id === parsedId)
+    ) {
+      setTitleError(
+        "비활성화된 직책은 선택할 수 없습니다. 활성 직책을 선택하거나 [선택 안 함]으로 변경하세요."
+      );
       return;
     }
     setTitleSubmitting(true);
     try {
-      const updated = await usersApi.updateUserTitle(userId, trimmed.length === 0 ? null : trimmed);
+      const updated = await usersApi.assignUserTitle(userId, parsedId);
       setUser(updated);
       setEditingTitle(false);
-      setTitleDraft("");
+      setTitleIdDraft("");
       setTitleError("");
     } catch (e: unknown) {
       setTitleError(e instanceof Error ? e.message : "직책 수정에 실패했습니다.");
@@ -215,47 +273,109 @@ export default function UserDetailClient({ userId }: Props) {
                   onClick={startEditTitle}
                   className="text-xs text-meta-1 hover:underline"
                 >
-                  {user.title ? "수정" : "추가"}
+                  {user.titleLabel ? "수정" : "추가"}
                 </button>
               )}
             </div>
             {editingTitle ? (
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  value={titleDraft}
-                  onChange={(e) => setTitleDraft(e.target.value)}
-                  maxLength={30}
-                  placeholder="예: 포토그래퍼 (비우면 라벨 미노출)"
-                  className="flex-1 min-w-[200px] rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input dark:text-white"
-                  disabled={titleSubmitting}
-                />
-                <span className="text-xs text-gray-400">{titleDraft.length}/30</span>
-                <button
-                  type="button"
-                  onClick={submitTitle}
-                  disabled={titleSubmitting}
-                  className="rounded bg-meta-1 px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-60"
-                >
-                  {titleSubmitting ? "저장 중..." : "저장"}
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEditTitle}
-                  disabled={titleSubmitting}
-                  className="rounded border border-stroke px-3 py-1.5 text-sm hover:bg-gray-1 dark:border-strokedark"
-                >
-                  취소
-                </button>
-                {titleError && (
-                  <p className="basis-full text-xs text-meta-1">{titleError}</p>
-                )}
+                {(() => {
+                  // 현재 선택된 user.titleId 가 활성 목록에 없을 수도 있다 (이후 비활성/삭제).
+                  // 그 경우 드롭다운에 임시 옵션으로 보존 노출.
+                  const currentInList = activeTitles.some(
+                    (t) => user.titleId != null && t.id === user.titleId
+                  );
+                  const hasAnyActive = activeTitles.length > 0;
+
+                  if (!titlesLoading && !hasAnyActive && !user.titleId) {
+                    return (
+                      <div className="basis-full">
+                        <p className="text-sm text-meta-1">
+                          활성 직책이 없습니다. 직책 마스터를 먼저 등록해주세요.
+                        </p>
+                        <Link
+                          href="/user-titles"
+                          className="mt-1 inline-block text-xs text-primary hover:underline"
+                        >
+                          → 직책 마스터 관리로 이동
+                        </Link>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={cancelEditTitle}
+                            className="rounded border border-stroke px-3 py-1.5 text-sm hover:bg-gray-1 dark:border-strokedark"
+                          >
+                            닫기
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <select
+                        value={titleIdDraft}
+                        onChange={(e) => {
+                          setTitleIdDraft(e.target.value);
+                          setTitleError("");
+                        }}
+                        disabled={titleSubmitting || titlesLoading}
+                        className="flex-1 min-w-[220px] rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input dark:text-white"
+                      >
+                        <option value="">선택 안 함 (직책 해제)</option>
+                        {!currentInList && user.titleId != null && (
+                          // 옵션 A: 비활성/삭제된 현재 직책은 표시만 유지하고 선택 불가
+                          <option
+                            value={String(user.titleId)}
+                            disabled
+                            className="text-gray-400 dark:text-gray-500"
+                          >
+                            {user.titleLabel ?? `(id=${user.titleId})`} (현재 비활성/삭제 — 선택 불가)
+                          </option>
+                        )}
+                        {activeTitles.map((t) => (
+                          <option key={t.id} value={String(t.id)}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={submitTitle}
+                        disabled={titleSubmitting || titlesLoading || isInactiveDraft}
+                        className="rounded bg-meta-1 px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-60"
+                      >
+                        {titleSubmitting ? "저장 중..." : "저장"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEditTitle}
+                        disabled={titleSubmitting}
+                        className="rounded border border-stroke px-3 py-1.5 text-sm hover:bg-gray-1 dark:border-strokedark"
+                      >
+                        취소
+                      </button>
+                      {titlesLoading && (
+                        <span className="basis-full text-xs text-gray-400">
+                          활성 직책 목록 불러오는 중...
+                        </span>
+                      )}
+                      {titlesError && (
+                        <span className="basis-full text-xs text-meta-1">{titlesError}</span>
+                      )}
+                      {titleError && (
+                        <p className="basis-full text-xs text-meta-1">{titleError}</p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <p className="mt-1 font-medium text-black dark:text-white">
-                {user.title ? (
+                {user.titleLabel ? (
                   <span className="inline-block rounded bg-meta-1/10 px-2 py-0.5 text-sm text-meta-1">
-                    {user.title}
+                    {user.titleLabel}
                   </span>
                 ) : (
                   <span className="text-gray-400">미설정</span>
@@ -266,7 +386,16 @@ export default function UserDetailClient({ userId }: Props) {
         </div>
       </div>
 
-      <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+      <UserPointSection userId={userId} canGrant={isAdmin} />
+
+      <UserDangerZone
+        userId={userId}
+        userNickname={user.nickname}
+        userStatus={user.status}
+        onSuccess={load}
+      />
+
+      <div className="mt-6 rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
         <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-strokedark">
           <h2 className="font-semibold text-black dark:text-white">제재 이력</h2>
           <button

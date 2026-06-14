@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { inquiriesApi } from "@/lib/api/inquiries";
 import { AdminInquiry, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
+import CsvExportButton from "@/components/common/CsvExportButton";
 
 const statusLabel: Record<string, string> = {
   "답변대기": "미처리",
@@ -50,8 +51,15 @@ export default function InquiryListClient() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-black dark:text-white">문의 관리</h1>
+        <CsvExportButton
+          exportPath="/inquiries/export"
+          requiredRole="OPERATOR"
+          label="문의 CSV"
+          fallbackFilename="chalkak_admin_inquiries.csv"
+          filterParams={{ status }}
+        />
       </div>
 
       <div className="mb-4 flex gap-3">

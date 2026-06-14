@@ -5,8 +5,19 @@ import { AuditLog, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
 import MaskedField from "@/components/common/MaskedField";
 import UnmaskModal from "@/components/common/UnmaskModal";
+import CsvExportButton from "@/components/common/CsvExportButton";
 
 const targetTypes = ["", "USER", "ARTICLE", "COMMENT", "INQUIRY", "BANNER", "BOARD", "PLACE_TYPE", "ARTICLE_TYPE"];
+
+// YYYY-MM-DD → ISO datetime. from은 00:00:00, to는 23:59:59로 보정.
+const toIsoFrom = (d: string) => (d ? `${d}T00:00:00` : undefined);
+const toIsoTo = (d: string) => (d ? `${d}T23:59:59` : undefined);
+const formatYmd = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 export default function AuditLogListClient() {
   const [data, setData] = useState<PageResponse<AuditLog> | null>(null);
@@ -14,12 +25,14 @@ export default function AuditLogListClient() {
   const [adminId, setAdminId] = useState("");
   const [action, setAction] = useState("");
   const [targetType, setTargetType] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [unmaskAuditId, setUnmaskAuditId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = (p: number, aid: string, act: string, tt: string) => {
+  const load = (p: number, aid: string, act: string, tt: string, fd: string, td: string) => {
     setLoading(true);
     auditLogsApi
       .getAuditLogs({
@@ -28,6 +41,8 @@ export default function AuditLogListClient() {
         adminId: aid ? Number(aid) : undefined,
         action: act || undefined,
         targetType: tt || undefined,
+        from: toIsoFrom(fd),
+        to: toIsoTo(td),
       })
       .then(setData)
       .catch((e) => setError(e.message))
@@ -35,14 +50,14 @@ export default function AuditLogListClient() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(page, adminId, action, targetType); }, [page, targetType]);
+  useEffect(() => { load(page, adminId, action, targetType, fromDate, toDate); }, [page, targetType, fromDate, toDate]);
 
   const handleActionChange = (val: string) => {
     setAction(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(0);
-      load(0, adminId, val, targetType);
+      load(0, adminId, val, targetType, fromDate, toDate);
     }, 300);
   };
 
@@ -51,14 +66,42 @@ export default function AuditLogListClient() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(0);
-      load(0, val, action, targetType);
+      load(0, val, action, targetType, fromDate, toDate);
     }, 300);
+  };
+
+  const applyRange = (days: number | null) => {
+    if (days === null) {
+      setFromDate("");
+      setToDate("");
+      setPage(0);
+      return;
+    }
+    const now = new Date();
+    const from = new Date();
+    from.setDate(now.getDate() - (days - 1));
+    setFromDate(formatYmd(from));
+    setToDate(formatYmd(now));
+    setPage(0);
   };
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-black dark:text-white">감사 로그</h1>
+        <CsvExportButton
+          exportPath="/audit-logs/export"
+          requiredRole="ADMIN"
+          label="감사 로그 CSV"
+          fallbackFilename="chalkak_admin_audit_logs.csv"
+          filterParams={{
+            adminId: adminId || undefined,
+            action,
+            targetType,
+            from: toIsoFrom(fromDate),
+            to: toIsoTo(toDate),
+          }}
+        />
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -86,6 +129,50 @@ export default function AuditLogListClient() {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={(e) => { setFromDate(e.target.value); setPage(0); }}
+            className="rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
+            aria-label="시작일"
+          />
+          <span className="text-sm text-gray-500">~</span>
+          <input
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+            className="rounded border border-stroke px-3 py-2 text-sm outline-none focus:border-primary dark:border-strokedark dark:bg-boxdark dark:text-white"
+            aria-label="종료일"
+          />
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => applyRange(7)}
+            className="rounded border border-stroke px-2 py-2 text-xs hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+          >
+            최근 7일
+          </button>
+          <button
+            type="button"
+            onClick={() => applyRange(30)}
+            className="rounded border border-stroke px-2 py-2 text-xs hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+          >
+            최근 30일
+          </button>
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => applyRange(null)}
+              className="rounded border border-stroke px-2 py-2 text-xs hover:bg-gray-1 dark:border-strokedark dark:text-white dark:hover:bg-meta-4"
+            >
+              전체
+            </button>
+          )}
+        </div>
       </div>
 
       {error && <div className="mb-4 text-sm text-red-500">{error}</div>}
@@ -165,7 +252,7 @@ export default function AuditLogListClient() {
           onClose={() => setUnmaskAuditId(null)}
           onSuccess={() => {
             setUnmaskAuditId(null);
-            load(page, adminId, action, targetType);
+            load(page, adminId, action, targetType, fromDate, toDate);
           }}
         />
       )}

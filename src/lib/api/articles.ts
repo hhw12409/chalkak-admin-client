@@ -9,6 +9,8 @@ export const articlesApi = {
     status?: string;
     isHidden?: boolean;
     keyword?: string;
+    from?: string;
+    to?: string;
   }) => request<PageResponse<AdminArticle>>(`/articles?${buildParams(params)}`),
 
   getArticle: (id: number) =>

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { reportsApi } from "@/lib/api/reports";
 import { articlesApi } from "@/lib/api/articles";
 import { ReportGroup, ReportDetail, ReportAction, AdminArticle } from "@/types/admin";
+import CsvExportButton from "@/components/common/CsvExportButton";
 
 const reportActionOptions: { value: ReportAction; label: string }[] = [
   { value: "HIDE_CONTENT", label: "내용 숨김" },
@@ -109,8 +110,18 @@ export default function ReportListClient() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-black dark:text-white">신고 관리</h1>
+        <CsvExportButton
+          exportPath="/reports/export"
+          requiredRole="OPERATOR"
+          label="신고 CSV"
+          fallbackFilename="chalkak_admin_reports.csv"
+          filterParams={{
+            targetType,
+            processedOnly: processedFilter === "" ? undefined : processedFilter,
+          }}
+        />
       </div>
 
       <div className="mb-4 flex gap-3">

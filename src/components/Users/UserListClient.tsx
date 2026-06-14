@@ -6,6 +6,7 @@ import { AdminUser, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
 import MaskedField from "@/components/common/MaskedField";
 import UnmaskModal from "@/components/common/UnmaskModal";
+import CsvExportButton from "@/components/common/CsvExportButton";
 
 const statusLabel: Record<string, string> = {
   ACTIVE: "활성",
@@ -62,6 +63,13 @@ export default function UserListClient() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-black dark:text-white">사용자 관리</h1>
+        <CsvExportButton
+          exportPath="/users/export"
+          requiredRole="ADMIN"
+          label="회원 CSV"
+          fallbackFilename="chalkak_admin_users.csv"
+          filterParams={{ status, keyword }}
+        />
       </div>
 
       <div className="mb-4 flex flex-wrap gap-3">
@@ -93,6 +101,7 @@ export default function UserListClient() {
               <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">ID</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">닉네임</th>
+                <th className="px-4 py-3 text-left font-medium text-black dark:text-white">직책</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">이메일</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">역할</th>
                 <th className="px-4 py-3 text-left font-medium text-black dark:text-white">로그인 타입</th>
@@ -103,14 +112,23 @@ export default function UserListClient() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
               ) : data?.content.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">사용자가 없습니다</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">사용자가 없습니다</td></tr>
               ) : (
                 data?.content.map((user) => (
                   <tr key={user.userId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{user.userId}</td>
                     <td className="px-4 py-3 font-medium text-black dark:text-white">{user.nickname}</td>
+                    <td className="px-4 py-3">
+                      {user.titleLabel ? (
+                        <span className="inline-block rounded bg-meta-1/10 px-2 py-0.5 text-xs text-meta-1">
+                          {user.titleLabel}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                       <MaskedField
                         value={user.email}
