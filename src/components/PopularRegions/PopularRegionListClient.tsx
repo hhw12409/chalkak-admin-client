@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { popularRegionsApi } from "@/lib/api/popularRegions";
 import {
   PopularRegion,
@@ -56,6 +56,52 @@ export default function PopularRegionListClient() {
   const [form, setForm] = useState<FormState>(emptyForm(0));
   const [submitting, setSubmitting] = useState(false);
   const [reordering, setReordering] = useState(false);
+  // 인라인 이름 편집 상태: 활성 row id + 입력 중인 값 + 저장 중 여부
+  const [inlineEdit, setInlineEdit] = useState<{ id: number; value: string } | null>(null);
+  const [savingInline, setSavingInline] = useState(false);
+  const inlineInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inlineEdit) {
+      inlineInputRef.current?.focus();
+      inlineInputRef.current?.select();
+    }
+  }, [inlineEdit]);
+
+  const startInlineEdit = (region: PopularRegion) => {
+    setInlineEdit({ id: region.id, value: region.name });
+  };
+
+  const cancelInlineEdit = () => setInlineEdit(null);
+
+  const commitInlineEdit = async () => {
+    if (!inlineEdit) return;
+    const trimmed = inlineEdit.value.trim();
+    if (!trimmed) {
+      alert("지역명을 입력해주세요.");
+      inlineInputRef.current?.focus();
+      return;
+    }
+    if (trimmed.length > 30) {
+      alert("지역명은 30자 이내여야 합니다.");
+      return;
+    }
+    const target = items.find((r) => r.id === inlineEdit.id);
+    if (target && target.name === trimmed) {
+      setInlineEdit(null);
+      return;
+    }
+    setSavingInline(true);
+    try {
+      await popularRegionsApi.update(inlineEdit.id, { name: trimmed });
+      setInlineEdit(null);
+      load();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "이름 저장 실패");
+    } finally {
+      setSavingInline(false);
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -193,7 +239,80 @@ export default function PopularRegionListClient() {
                 {items.map((region, idx) => (
                   <tr key={region.id} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
                     <td className="px-4 py-3 text-gray-500">{region.displayOrder}</td>
-                    <td className="px-4 py-3 font-medium text-black dark:text-white">{region.name}</td>
+                    <td className="px-4 py-3 font-medium text-black dark:text-white">
+                      {inlineEdit?.id === region.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            ref={inlineInputRef}
+                            type="text"
+                            value={inlineEdit.value}
+                            disabled={savingInline}
+                            maxLength={30}
+                            onChange={(e) =>
+                              setInlineEdit((prev) => (prev ? { ...prev, value: e.target.value } : prev))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                commitInlineEdit();
+                              } else if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelInlineEdit();
+                              }
+                            }}
+                            onBlur={() => {
+                              // 저장 버튼 클릭과 충돌 방지를 위해 약간 지연
+                              setTimeout(() => {
+                                if (inlineEdit?.id === region.id) commitInlineEdit();
+                              }, 100);
+                            }}
+                            placeholder="지역명 입력"
+                            className="w-32 rounded border border-primary px-2 py-1 text-sm focus:outline-none dark:bg-form-input dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={commitInlineEdit}
+                            disabled={savingInline}
+                            className="rounded bg-primary px-2 py-1 text-xs text-white disabled:opacity-60"
+                          >
+                            {savingInline ? "..." : "저장"}
+                          </button>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={cancelInlineEdit}
+                            className="text-xs text-gray-400 hover:text-gray-600"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startInlineEdit(region)}
+                          className={`group flex items-center gap-1.5 rounded px-1 py-0.5 text-left hover:bg-gray-1 dark:hover:bg-meta-4 ${
+                            region.name ? "" : "text-gray-400"
+                          }`}
+                          aria-label="지역명 인라인 편집"
+                        >
+                          <span>{region.name || "지역명 입력"}</span>
+                          <svg
+                            className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden
+                          >
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                          </svg>
+                        </button>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-500">
                       {region.latitude.toFixed(4)}, {region.longitude.toFixed(4)}
                     </td>
