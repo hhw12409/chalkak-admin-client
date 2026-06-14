@@ -169,6 +169,15 @@ const menuGroups = [
       {
         icon: (
           <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.5C5.96 1.5 3.5 3.96 3.5 7c0 4.13 5.5 9 5.5 9s5.5-4.87 5.5-9c0-3.04-2.46-5.5-5.5-5.5zM9 9a2 2 0 110-4 2 2 0 010 4z" fill="" />
+          </svg>
+        ),
+        label: "인기 지역 관리",
+        route: "/popular-regions",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M2 14h2.5v-5H2v5zm4 0h2.5V7H6v7zm4 0h2.5V4H10v10zm4 0h2.5V1H14v13zM1 16.5v.5h16v-.5H1z" fill="" />
           </svg>
         ),

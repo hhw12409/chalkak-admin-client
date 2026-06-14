@@ -42,6 +42,10 @@ export default function UserDetailClient({ userId }: Props) {
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [articlesError, setArticlesError] = useState("");
   const [articlePage, setArticlePage] = useState(0);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleSubmitting, setTitleSubmitting] = useState(false);
+  const [titleError, setTitleError] = useState("");
 
   const load = () => {
     setLoading(true);
@@ -82,6 +86,38 @@ export default function UserDetailClient({ userId }: Props) {
       alert(e instanceof Error ? e.message : "제재 실패");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEditTitle = () => {
+    setTitleDraft(user?.title ?? "");
+    setTitleError("");
+    setEditingTitle(true);
+  };
+
+  const cancelEditTitle = () => {
+    setEditingTitle(false);
+    setTitleDraft("");
+    setTitleError("");
+  };
+
+  const submitTitle = async () => {
+    const trimmed = titleDraft.trim();
+    if (trimmed.length > 30) {
+      setTitleError("직책은 30자 이하로 입력해주세요.");
+      return;
+    }
+    setTitleSubmitting(true);
+    try {
+      const updated = await usersApi.updateUserTitle(userId, trimmed.length === 0 ? null : trimmed);
+      setUser(updated);
+      setEditingTitle(false);
+      setTitleDraft("");
+      setTitleError("");
+    } catch (e: unknown) {
+      setTitleError(e instanceof Error ? e.message : "직책 수정에 실패했습니다.");
+    } finally {
+      setTitleSubmitting(false);
     }
   };
 
@@ -170,6 +206,63 @@ export default function UserDetailClient({ userId }: Props) {
           <Info label="비공개 계정" value={user.isPrivate ? "예" : "아니오"} />
           <Info label="가입일" value={user.createdAt?.slice(0, 10)} />
           {user.introduction && <Info label="소개" value={user.introduction} />}
+          <div className="col-span-2 md:col-span-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-gray-500">직책 (클라이언트 닉네임 아래 표시)</span>
+              {!editingTitle && (
+                <button
+                  type="button"
+                  onClick={startEditTitle}
+                  className="text-xs text-meta-1 hover:underline"
+                >
+                  {user.title ? "수정" : "추가"}
+                </button>
+              )}
+            </div>
+            {editingTitle ? (
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  maxLength={30}
+                  placeholder="예: 포토그래퍼 (비우면 라벨 미노출)"
+                  className="flex-1 min-w-[200px] rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input dark:text-white"
+                  disabled={titleSubmitting}
+                />
+                <span className="text-xs text-gray-400">{titleDraft.length}/30</span>
+                <button
+                  type="button"
+                  onClick={submitTitle}
+                  disabled={titleSubmitting}
+                  className="rounded bg-meta-1 px-3 py-1.5 text-sm text-white hover:bg-opacity-90 disabled:opacity-60"
+                >
+                  {titleSubmitting ? "저장 중..." : "저장"}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditTitle}
+                  disabled={titleSubmitting}
+                  className="rounded border border-stroke px-3 py-1.5 text-sm hover:bg-gray-1 dark:border-strokedark"
+                >
+                  취소
+                </button>
+                {titleError && (
+                  <p className="basis-full text-xs text-meta-1">{titleError}</p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-1 font-medium text-black dark:text-white">
+                {user.title ? (
+                  <span className="inline-block rounded bg-meta-1/10 px-2 py-0.5 text-sm text-meta-1">
+                    {user.title}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">미설정</span>
+                )}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

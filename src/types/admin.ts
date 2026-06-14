@@ -66,10 +66,17 @@ export interface AdminUser {
   status: string;
   isPrivate: boolean;
   userUuid: string;
+  /** 어드민이 관리하는 직책 라벨 (예: 포토그래퍼). null/빈값이면 클라이언트 미노출. */
+  title?: string | null;
   termsAgreedAt?: string;
   privacyAgreedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/** PATCH /admin/users/{userId}/title 요청 본문. 빈 문자열/null 은 서버에서 null 로 저장. */
+export interface UserTitleUpdatePayload {
+  title: string | null;
 }
 
 export interface UserSanction {
@@ -339,6 +346,29 @@ export interface EventCreatePayload {
 }
 
 export type EventUpdatePayload = Partial<EventCreatePayload>;
+
+export interface PopularRegion {
+  id: number;
+  name: string;
+  latitude: number;
+  longitude: number;
+  zoomLevel: number;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PopularRegionCreatePayload {
+  name: string;
+  latitude: number;
+  longitude: number;
+  zoomLevel: number;
+  displayOrder: number;
+  isActive?: boolean;
+}
+
+export type PopularRegionUpdatePayload = Partial<PopularRegionCreatePayload>;
 
 export interface PagedResponseDto<T> {
   data: T[];
