@@ -125,6 +125,8 @@ export interface UserSanction {
 export interface AdminArticle {
   articleId: number;
   articleTypeId: number;
+  /** article_type_tb.article_type 라벨 (예: "포토스팟", "커뮤니티"). 마스터에 없으면 null. */
+  articleType?: string | null;
   userId: number;
   authorNickname?: string;
   authorEmail?: string;
@@ -296,6 +298,14 @@ export interface AdminComment {
   parentCommentId?: number;
   createdAt: string;
   reportCount?: number;
+  authorNickname?: string | null;
+  authorUsername?: string | null;
+  /** 댓글이 달린 게시글 제목. 고아 댓글이면 null. */
+  articleTitle?: string | null;
+  /** article_tb.article_type_id. 게시글 row가 없으면 null. */
+  articleTypeId?: number | null;
+  /** article_type_tb.article_type 라벨. typeId가 마스터에 없거나 article 없으면 null. */
+  articleType?: string | null;
 }
 
 export interface AdminArticleComment {
@@ -309,14 +319,20 @@ export interface AdminArticleComment {
   authorNickname: string | null;
   authorUsername: string | null;
   createdAt: string;
+  /** 게시글 제목 (일관성). */
+  articleTitle?: string | null;
+  articleTypeId?: number | null;
+  articleType?: string | null;
 }
 
 export interface AdminCommentDetail extends AdminComment {
-  articleTitle?: string;
-  authorNickname?: string;
+  articleTitle?: string | null;
+  authorNickname?: string | null;
   authorEmail?: string;
   updatedAt?: string;
   reportCount: number;
+  articleTypeId?: number | null;
+  articleType?: string | null;
 }
 
 export type SpotRankingPeriod = 'ALL_TIME' | 'WEEKLY' | 'MONTHLY';

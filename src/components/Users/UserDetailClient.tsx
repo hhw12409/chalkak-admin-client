@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usersApi } from "@/lib/api/users";
 import { userTitlesApi } from "@/lib/api/userTitles";
 import { articlesApi } from "@/lib/api/articles";
+import { commentsApi } from "@/lib/api/comments";
 import {
   AdminUser,
   AdminArticle,
+  AdminComment,
   PageResponse,
   UserSanction,
   SanctionLevel,
@@ -37,6 +39,7 @@ const sanctionStatusLabel: Record<string, string> = {
 interface Props { userId: number; }
 
 const ARTICLE_PAGE_SIZE = 10;
+const COMMENT_PAGE_SIZE = 10;
 
 export default function UserDetailClient({ userId }: Props) {
   const { admin } = useAuth();
@@ -56,6 +59,10 @@ export default function UserDetailClient({ userId }: Props) {
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [articlesError, setArticlesError] = useState("");
   const [articlePage, setArticlePage] = useState(0);
+  const [comments, setComments] = useState<PageResponse<AdminComment> | null>(null);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentsError, setCommentsError] = useState("");
+  const [commentPage, setCommentPage] = useState(0);
   const [editingTitle, setEditingTitle] = useState(false);
   /** "" 면 미선택, 숫자 문자열은 직책 마스터 id */
   const [titleIdDraft, setTitleIdDraft] = useState<string>("");
@@ -85,6 +92,16 @@ export default function UserDetailClient({ userId }: Props) {
       .finally(() => setArticlesLoading(false));
   };
 
+  const loadComments = (p: number) => {
+    setCommentsLoading(true);
+    setCommentsError("");
+    commentsApi
+      .getComments({ userId, page: p, size: COMMENT_PAGE_SIZE, sort: "createdAt,desc" })
+      .then(setComments)
+      .catch((e) => setCommentsError(e instanceof Error ? e.message : "댓글 목록을 불러올 수 없습니다."))
+      .finally(() => setCommentsLoading(false));
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [userId]);
 
@@ -92,6 +109,11 @@ export default function UserDetailClient({ userId }: Props) {
     loadArticles(articlePage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, articlePage]);
+
+  useEffect(() => {
+    loadComments(commentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, commentPage]);
 
   // 마운트 시 1회 활성 직책 마스터 캐시
   useEffect(() => {
@@ -462,6 +484,7 @@ export default function UserDetailClient({ userId }: Props) {
             <thead>
               <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
                 <th className="px-4 py-3 text-left font-medium">ID</th>
+                <th className="px-4 py-3 text-left font-medium">유형</th>
                 <th className="px-4 py-3 text-left font-medium">제목</th>
                 <th className="px-4 py-3 text-left font-medium">상태</th>
                 <th className="px-4 py-3 text-left font-medium">숨김</th>
@@ -472,15 +495,31 @@ export default function UserDetailClient({ userId }: Props) {
             </thead>
             <tbody>
               {articlesLoading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
               ) : articlesError ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-meta-1">{articlesError}</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-meta-1">{articlesError}</td></tr>
               ) : !articles || articles.content.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">작성한 게시글이 없습니다</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">작성한 게시글이 없습니다</td></tr>
               ) : (
                 articles.content.map((article) => (
                   <tr key={article.articleId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
                     <td className="px-4 py-3 text-gray-500">{article.articleId}</td>
+                    <td className="px-4 py-3">
+                      {article.articleTypeId === 1 || article.articleTypeId === 2 ? (
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${
+                            article.articleTypeId === 1
+                              ? "bg-meta-3/10 text-meta-3"
+                              : "bg-meta-5/10 text-meta-5"
+                          }`}
+                        >
+                          {article.articleType ??
+                            (article.articleTypeId === 1 ? "포토스팟" : "커뮤니티")}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 max-w-xs">
                       <span className="line-clamp-1 font-medium text-black dark:text-white">{article.title}</span>
                     </td>
@@ -515,6 +554,99 @@ export default function UserDetailClient({ userId }: Props) {
             first={articles.first}
             last={articles.last}
             onPageChange={setArticlePage}
+            itemLabel="건"
+          />
+        )}
+      </div>
+
+      <div className="mt-6 rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+        <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-strokedark">
+          <h2 className="font-semibold text-black dark:text-white">
+            작성 댓글
+            {comments && (
+              <span className="ml-2 text-sm font-normal text-gray-500">
+                총 {comments.totalElements.toLocaleString()}건
+              </span>
+            )}
+          </h2>
+        </div>
+        <p className="border-b border-stroke px-6 py-2 text-xs text-gray-500 dark:border-strokedark">
+          ※ 댓글 본문에는 PII(이메일/전화번호 등)가 포함될 수 있습니다. 외부 공유 금지.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-stroke bg-gray-2 dark:border-strokedark dark:bg-meta-4">
+                <th className="px-4 py-3 text-left font-medium">ID</th>
+                <th className="px-4 py-3 text-left font-medium">작성일시</th>
+                <th className="px-4 py-3 text-left font-medium">내용</th>
+                <th className="px-4 py-3 text-left font-medium">연관 게시글</th>
+                <th className="px-4 py-3 text-left font-medium">유형</th>
+                <th className="px-4 py-3 text-left font-medium">신고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {commentsLoading ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+              ) : commentsError ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-meta-1">{commentsError}</td></tr>
+              ) : !comments || comments.content.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">작성한 댓글이 없습니다</td></tr>
+              ) : (
+                comments.content.map((c) => (
+                  <tr key={c.articleCommentId} className="border-b border-stroke dark:border-strokedark hover:bg-gray-1 dark:hover:bg-meta-4">
+                    <td className="px-4 py-3 text-gray-500">{c.articleCommentId}</td>
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {c.createdAt ? c.createdAt.replace("T", " ").slice(0, 16) : "-"}
+                    </td>
+                    <td className="px-4 py-3 max-w-sm">
+                      <span
+                        className="line-clamp-1 text-black dark:text-white"
+                        title={c.comment ?? ""}
+                      >
+                        {c.comment}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 max-w-xs">
+                      <Link
+                        href={`/articles/${c.articleId}`}
+                        className="line-clamp-1 text-primary hover:underline"
+                        title={c.articleTitle ?? `#${c.articleId}`}
+                      >
+                        {c.articleTitle ?? `#${c.articleId}`}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.articleTypeId === 1 || c.articleTypeId === 2 ? (
+                        <span
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${
+                            c.articleTypeId === 1
+                              ? "bg-meta-3/10 text-meta-3"
+                              : "bg-meta-5/10 text-meta-5"
+                          }`}
+                        >
+                          {c.articleType ??
+                            (c.articleTypeId === 1 ? "포토스팟" : "커뮤니티")}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{c.reportCount ?? 0}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {comments && comments.totalPages > 0 && (
+          <Pagination
+            page={commentPage}
+            totalPages={comments.totalPages}
+            totalElements={comments.totalElements}
+            first={comments.first}
+            last={comments.last}
+            onPageChange={setCommentPage}
             itemLabel="건"
           />
         )}
