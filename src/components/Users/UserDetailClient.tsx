@@ -609,7 +609,7 @@ export default function UserDetailClient({ userId }: Props) {
                     </td>
                     <td className="px-4 py-3 max-w-xs">
                       <Link
-                        href={`/articles/${c.articleId}`}
+                        href={`/articles?articleId=${c.articleId}`}
                         className="line-clamp-1 text-primary hover:underline"
                         title={c.articleTitle ?? `#${c.articleId}`}
                       >

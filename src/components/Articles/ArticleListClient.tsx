@@ -42,7 +42,7 @@ interface ToastState {
   type: "success" | "error";
 }
 
-export default function ArticleListClient() {
+export default function ArticleListClient({ initialArticleId }: { initialArticleId?: number } = {}) {
   const [data, setData] = useState<PageResponse<AdminArticle> | null>(null);
   const [page, setPage] = useState(0);
   const [keyword, setKeyword] = useState("");
@@ -174,6 +174,27 @@ export default function ArticleListClient() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailTab, detailModal?.articleId]);
+
+  useEffect(() => {
+    if (!initialArticleId) return;
+    let cancelled = false;
+    setDetailLoading(true);
+    articlesApi
+      .getArticle(initialArticleId)
+      .then((full) => {
+        if (!cancelled) setDetailModal(full);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) showToast(e instanceof Error ? e.message : "게시글을 불러올 수 없습니다.", "error");
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialArticleId]);
 
   const refreshDetail = async (id: number) => {
     setDetailLoading(true);
