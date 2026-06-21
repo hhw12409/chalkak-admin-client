@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import ClickOutside from "@/components/ClickOutside";
 import { useAuth } from "@/context/AuthContext";
+import PasswordChangeModal from "@/components/Header/PasswordChangeModal";
 
 const roleLabel: Record<string, string> = {
   ADMIN: '관리자',
@@ -12,6 +13,7 @@ const roleLabel: Record<string, string> = {
 
 const DropdownUser = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const { admin, logout } = useAuth();
 
   return (
@@ -56,6 +58,28 @@ const DropdownUser = () => {
             <p className="text-xs text-gray-500">{admin?.username}</p>
           </div>
           <button
+            onClick={() => {
+              setDropdownOpen(false);
+              setPasswordModalOpen(true);
+            }}
+            className="flex items-center gap-3.5 border-b border-stroke px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base dark:border-strokedark"
+          >
+            <svg
+              className="fill-current"
+              width="22"
+              height="22"
+              viewBox="0 0 22 22"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M16.5 9.16667H15.5833V6.41667C15.5833 3.88333 13.5333 1.83333 11 1.83333C8.46667 1.83333 6.41667 3.88333 6.41667 6.41667V9.16667H5.5C4.49167 9.16667 3.66667 9.99167 3.66667 11V18.3333C3.66667 19.3417 4.49167 20.1667 5.5 20.1667H16.5C17.5083 20.1667 18.3333 19.3417 18.3333 18.3333V11C18.3333 9.99167 17.5083 9.16667 16.5 9.16667ZM8.25 6.41667C8.25 4.895 9.47833 3.66667 11 3.66667C12.5217 3.66667 13.75 4.895 13.75 6.41667V9.16667H8.25V6.41667ZM11 16.0417C9.99167 16.0417 9.16667 15.2167 9.16667 14.2083C9.16667 13.2 9.99167 12.375 11 12.375C12.0083 12.375 12.8333 13.2 12.8333 14.2083C12.8333 15.2167 12.0083 16.0417 11 16.0417Z"
+                fill=""
+              />
+            </svg>
+            비밀번호 변경
+          </button>
+          <button
             onClick={logout}
             className="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base"
           >
@@ -79,6 +103,10 @@ const DropdownUser = () => {
             로그아웃
           </button>
         </div>
+      )}
+
+      {passwordModalOpen && (
+        <PasswordChangeModal onClose={() => setPasswordModalOpen(false)} />
       )}
     </ClickOutside>
   );

@@ -110,6 +110,29 @@ export interface UserTitleUpdatePayload {
   isActive?: boolean;
 }
 
+/** 어드민이 관리하는 장소 타입 마스터(place_type_tb) 한 행. */
+export interface PlaceType {
+  typeId: number;
+  typeName: string;
+  status: 'ACTIVE' | 'DELETED';
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface PlaceTypeCreatePayload {
+  typeName: string;
+}
+
+export interface PlaceTypeUpdatePayload {
+  typeName: string;
+}
+
+/** 운영자 본인 비밀번호 변경 페이로드. */
+export interface AdminPasswordChangePayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface UserSanction {
   sanctionId: number;
   userId: number;
