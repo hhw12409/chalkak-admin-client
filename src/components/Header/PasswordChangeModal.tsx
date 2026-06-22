@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { authApi } from "@/lib/api/auth";
 
 interface Props {
@@ -19,6 +20,11 @@ export default function PasswordChangeModal({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [success, setSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,9 +72,11 @@ export default function PasswordChangeModal({ onClose }: Props) {
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-999999 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-999999 flex items-center justify-center bg-black/50 p-4"
       onClick={handleOverlayClick}
     >
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark">
@@ -165,6 +173,7 @@ export default function PasswordChangeModal({ onClose }: Props) {
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
