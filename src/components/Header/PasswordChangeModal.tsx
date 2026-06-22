@@ -71,7 +71,7 @@ export default function PasswordChangeModal({ onClose }: Props) {
       className="fixed inset-0 z-999999 flex items-center justify-center bg-black/50"
       onClick={handleOverlayClick}
     >
-      <div className="w-full max-w-md rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark">
         <h3 className="mb-4 text-lg font-semibold text-black dark:text-white">
           비밀번호 변경
         </h3>
@@ -92,7 +92,7 @@ export default function PasswordChangeModal({ onClose }: Props) {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <div className="mb-4">
               <label className="mb-1 block text-sm font-medium">
                 현재 비밀번호 <span className="text-meta-1">*</span>
