@@ -1,6 +1,6 @@
 import { request } from '@/lib/apiClient';
 
-export type UnmaskTargetType = 'USER' | 'ADMIN_USER' | 'AUDIT_LOG';
+export type UnmaskTargetType = 'USER' | 'ADMIN_USER' | 'AUDIT_LOG' | 'USER_LOCATION';
 
 export interface UnmaskGrantResponse {
   targetType: string;

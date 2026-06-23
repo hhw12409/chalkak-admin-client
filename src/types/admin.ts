@@ -1,5 +1,5 @@
 export type AdminRole = 'VIEWER' | 'OPERATOR' | 'ADMIN';
-export type UnmaskTargetType = 'USER' | 'ADMIN_USER' | 'AUDIT_LOG';
+export type UnmaskTargetType = 'USER' | 'ADMIN_USER' | 'AUDIT_LOG' | 'USER_LOCATION';
 export type SanctionLevel = 'WARNING' | 'SUSPEND_7D' | 'SUSPEND_30D' | 'PERMANENT';
 export type SanctionStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
 export type ReportAction = 'HIDE_CONTENT' | 'DELETE_CONTENT' | 'REJECT_REPORT' | 'WARN_USER';
