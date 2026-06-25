@@ -75,6 +75,7 @@ export default function CommentListClient() {
   const [reportsModalLoading, setReportsModalLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const articleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reqIdRef = useRef(0);
   const userDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -142,6 +143,7 @@ export default function CommentListClient() {
     aid: string,
     uid: string,
   ) => {
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     commentsApi
       .getComments({
@@ -154,9 +156,9 @@ export default function CommentListClient() {
         articleId: aid ? Number(aid) : undefined,
         userId: uid ? Number(uid) : undefined,
       })
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((res) => { if (reqId === reqIdRef.current) setData(res); })
+      .catch((e) => { if (reqId === reqIdRef.current) setError(e.message); })
+      .finally(() => { if (reqId === reqIdRef.current) setLoading(false); });
   };
 
   useEffect(() => {

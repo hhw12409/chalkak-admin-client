@@ -73,6 +73,7 @@ export default function ArticleListClient({ initialArticleId }: { initialArticle
   const [commentsError, setCommentsError] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reqIdRef = useRef(0);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -110,6 +111,7 @@ export default function ArticleListClient({ initialArticleId }: { initialArticle
   };
 
   const load = (p: number, kw: string, st: string, ih: string, fd: string, td: string) => {
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     articlesApi
       .getArticles({
@@ -121,9 +123,9 @@ export default function ArticleListClient({ initialArticleId }: { initialArticle
         from: toIsoFrom(fd),
         to: toIsoTo(td),
       })
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((res) => { if (reqId === reqIdRef.current) setData(res); })
+      .catch((e) => { if (reqId === reqIdRef.current) setError(e.message); })
+      .finally(() => { if (reqId === reqIdRef.current) setLoading(false); });
   };
 
   useEffect(() => {

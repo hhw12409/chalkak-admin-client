@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { reportsApi } from "@/lib/api/reports";
 import { articlesApi } from "@/lib/api/articles";
 import { ReportGroup, ReportDetail, ReportAction, AdminArticle } from "@/types/admin";
@@ -45,19 +45,39 @@ export default function ReportListClient() {
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>("");
 
+  const reqIdRef = useRef(0);
+
   const load = (tt: string, pf: string) => {
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     reportsApi
       .getReports({
         targetType: tt || undefined,
         processedOnly: pf === "" ? undefined : pf === "true",
       })
-      .then(setReports)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (reqId !== reqIdRef.current) return; // stale 응답 무시
+        setReports(res);
+      })
+      .catch((e) => {
+        if (reqId !== reqIdRef.current) return;
+        setError(e.message);
+      })
+      .finally(() => {
+        if (reqId !== reqIdRef.current) return;
+        setLoading(false);
+      });
   };
 
-  useEffect(() => { load(targetType, processedFilter); }, [targetType, processedFilter]);
+  useEffect(() => {
+    // 필터 변경 시 이전 펼침/상세/게시글 캐시 무효화 → 동일 key 재사용으로 인한 오대상 노출 방지
+    setExpandedKey(null);
+    setDetails({});
+    setArticleCache({});
+    setArticleLoading({});
+    load(targetType, processedFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetType, processedFilter]);
 
   const toggleExpand = async (report: ReportGroup) => {
     const key = `${report.targetType}_${report.targetId}`;

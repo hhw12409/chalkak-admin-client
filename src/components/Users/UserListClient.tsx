@@ -36,14 +36,16 @@ export default function UserListClient() {
   const [error, setError] = useState("");
   const [unmaskTargetId, setUnmaskTargetId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reqIdRef = useRef(0);
 
   const load = (p: number, kw: string, st: string) => {
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     usersApi
       .getUsers({ page: p, size: 20, keyword: kw || undefined, status: st || undefined })
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((res) => { if (reqId === reqIdRef.current) setData(res); })
+      .catch((e) => { if (reqId === reqIdRef.current) setError(e.message); })
+      .finally(() => { if (reqId === reqIdRef.current) setLoading(false); });
   };
 
   useEffect(() => {

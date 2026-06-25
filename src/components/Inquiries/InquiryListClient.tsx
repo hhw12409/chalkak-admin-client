@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { inquiriesApi } from "@/lib/api/inquiries";
 import { AdminInquiry, PageResponse } from "@/types/admin";
 import Pagination from "@/components/common/Pagination";
@@ -21,13 +21,16 @@ export default function InquiryListClient() {
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const reqIdRef = useRef(0);
+
   const load = (p: number, st: string) => {
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     inquiriesApi
       .getInquiries({ page: p, size: 20, status: st || undefined })
-      .then(setData)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((res) => { if (reqId === reqIdRef.current) setData(res); })
+      .catch((e) => { if (reqId === reqIdRef.current) setError(e.message); })
+      .finally(() => { if (reqId === reqIdRef.current) setLoading(false); });
   };
 
   useEffect(() => { load(page, status); }, [page, status]);

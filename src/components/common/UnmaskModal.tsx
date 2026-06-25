@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { unmaskApi, UnmaskTargetType } from "@/lib/api/unmask";
 
 interface UnmaskModalProps {
@@ -21,9 +21,16 @@ export default function UnmaskModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // 제출 중에는 닫기 차단 (중복 grant 방지). submitting을 클로저에 가두지 않도록 ref 사용.
+  const submittingRef = useRef(false);
+  const requestClose = () => {
+    if (submittingRef.current) return;
+    onClose();
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !submittingRef.current) {
         onClose();
       }
     };
@@ -42,6 +49,8 @@ export default function UnmaskModal({
       setError("열람 사유는 500자 이내로 입력해주세요.");
       return;
     }
+    if (submittingRef.current) return; // 재제출 차단
+    submittingRef.current = true;
     setSubmitting(true);
     setError("");
     try {
@@ -54,9 +63,11 @@ export default function UnmaskModal({
       if (result.alreadyGranted) {
         window.alert("이미 활성 권한이 있어 추가 발급 없이 그대로 열람합니다.");
       }
+      submittingRef.current = false;
       onSuccess(result.expiresAt);
       onClose();
     } catch (err: unknown) {
+      submittingRef.current = false;
       setError(err instanceof Error ? err.message : "요청 실패");
     } finally {
       setSubmitting(false);
@@ -66,7 +77,7 @@ export default function UnmaskModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
         className="w-full max-w-md rounded-sm bg-white p-6 shadow-lg dark:bg-boxdark"
@@ -102,8 +113,9 @@ export default function UnmaskModal({
           <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
-              className="rounded border border-stroke bg-white px-4 py-2 text-sm text-black hover:bg-gray-1 dark:border-strokedark dark:bg-boxdark dark:text-white dark:hover:bg-meta-4"
+              onClick={requestClose}
+              disabled={submitting}
+              className="rounded border border-stroke bg-white px-4 py-2 text-sm text-black hover:bg-gray-1 disabled:opacity-60 dark:border-strokedark dark:bg-boxdark dark:text-white dark:hover:bg-meta-4"
             >
               취소
             </button>
