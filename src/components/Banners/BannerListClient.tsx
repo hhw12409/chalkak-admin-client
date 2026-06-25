@@ -44,14 +44,34 @@ export default function BannerListClient() {
     setModal({ mode: "edit", banner });
   };
 
+  // datetime-local 값(yyyy-MM-ddTHH:mm)에만 초를 보강. 빈/비정상 길이면 그대로 둠.
+  const toIsoSeconds = (v: string): string => (v.length === 16 ? `${v}:00` : v);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 빈값 차단 + 형식 검증 + start < end 검증
+    if (!form.startedAt || !form.endedAt) {
+      alert("시작일시와 종료일시를 모두 입력해주세요.");
+      return;
+    }
+    const start = new Date(form.startedAt);
+    const end = new Date(form.endedAt);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      alert("올바른 날짜·시간 형식이 아닙니다.");
+      return;
+    }
+    if (start.getTime() >= end.getTime()) {
+      alert("종료일시는 시작일시보다 이후여야 합니다.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload: BannerPayload = {
         ...form,
-        startedAt: form.startedAt + ":00",
-        endedAt: form.endedAt + ":00",
+        startedAt: toIsoSeconds(form.startedAt),
+        endedAt: toIsoSeconds(form.endedAt),
       };
       if (modal?.mode === "edit" && modal.banner) {
         await bannersApi.updateBanner(modal.banner.bannerId, payload);

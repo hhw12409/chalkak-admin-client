@@ -23,6 +23,18 @@ const statuses: AdminUserStatus[] = ["ACTIVE", "SUSPENDED", "REVOKED"];
 
 const emptyForm = () => ({ username: "", password: "", email: "", name: "", role: "VIEWER" as AdminRole });
 
+// 역할/상태 변경 응답으로 row를 교체할 때 마스킹 표시 필드를 보존.
+// 서버 DTO가 emailMasked/lastLoginIpMasked(및 마스킹된 값)를 누락하면 평문 노출/강제 마스킹이
+// 발생하므로, 마스킹 의미와 직결된 필드는 서버 값이 명시될 때만 덮어쓰고 그 외엔 이전 row 유지.
+const mergeAdmin = (prev: AdminUserAccount, updated: AdminUserAccount): AdminUserAccount => ({
+  ...prev,
+  ...updated,
+  email: updated.email ?? prev.email,
+  emailMasked: updated.emailMasked ?? prev.emailMasked,
+  lastLoginIp: updated.lastLoginIp ?? prev.lastLoginIp,
+  lastLoginIpMasked: updated.lastLoginIpMasked ?? prev.lastLoginIpMasked,
+});
+
 export default function AdminUserListClient() {
   const { admin } = useAuth();
   const [admins, setAdmins] = useState<AdminUserAccount[]>([]);
@@ -67,7 +79,7 @@ export default function AdminUserListClient() {
     }
     try {
       const updated = await adminUsersApi.updateRole(targetAdmin.adminId, newRole);
-      setAdmins((prev) => prev.map((a) => (a.adminId === updated.adminId ? updated : a)));
+      setAdmins((prev) => prev.map((a) => (a.adminId === updated.adminId ? mergeAdmin(a, updated) : a)));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "역할 변경 실패");
     }
@@ -81,7 +93,7 @@ export default function AdminUserListClient() {
     if (!confirm(`${targetAdmin.name}의 상태를 "${statusLabel[newStatus]}"로 변경하시겠습니까?`)) return;
     try {
       const updated = await adminUsersApi.updateStatus(targetAdmin.adminId, newStatus);
-      setAdmins((prev) => prev.map((a) => (a.adminId === updated.adminId ? updated : a)));
+      setAdmins((prev) => prev.map((a) => (a.adminId === updated.adminId ? mergeAdmin(a, updated) : a)));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "상태 변경 실패");
     }

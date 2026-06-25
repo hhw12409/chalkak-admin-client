@@ -56,6 +56,7 @@ export default function PopularRegionListClient() {
   const [form, setForm] = useState<FormState>(emptyForm(0));
   const [submitting, setSubmitting] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const reorderingRef = useRef(false);
   // 인라인 이름 편집 상태: 활성 row id + 입력 중인 값 + 저장 중 여부
   const [inlineEdit, setInlineEdit] = useState<{ id: number; value: string } | null>(null);
   const [savingInline, setSavingInline] = useState(false);
@@ -181,18 +182,33 @@ export default function PopularRegionListClient() {
   };
 
   const move = async (region: PopularRegion, direction: -1 | 1) => {
-    const idx = items.findIndex((r) => r.id === region.id);
-    const swap = idx + direction;
-    if (idx < 0 || swap < 0 || swap >= items.length) return;
-    const next = [...items];
-    [next[idx], next[swap]] = [next[swap], next[idx]];
+    // 연타 race 방지: in-flight 중에는 즉시 무시 (버튼 disabled가 paint 전이라
+    // ref 기반 가드로 동기 차단). stale 클로저 대신 함수형 업데이트로 최신 items 사용.
+    if (reorderingRef.current) return;
+    reorderingRef.current = true;
     setReordering(true);
+
+    const prev = items;
+    const idx = prev.findIndex((r) => r.id === region.id);
+    const swap = idx + direction;
+    if (idx < 0 || swap < 0 || swap >= prev.length) {
+      reorderingRef.current = false;
+      setReordering(false);
+      return;
+    }
+    const next = [...prev];
+    [next[idx], next[swap]] = [next[swap], next[idx]];
+    // 낙관적 갱신 (displayOrder도 위치 기준으로 임시 반영)
+    setItems(next.map((r, i) => ({ ...r, displayOrder: i })));
+
     try {
       await popularRegionsApi.reorder(next.map((r) => r.id));
       load();
     } catch (err: unknown) {
+      setItems(prev); // 롤백
       alert(err instanceof Error ? err.message : "순서 변경 실패");
     } finally {
+      reorderingRef.current = false;
       setReordering(false);
     }
   };
