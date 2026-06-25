@@ -583,6 +583,149 @@ export interface OssLicenseCreatePayload {
 
 export type OssLicenseUpdatePayload = Partial<OssLicenseCreatePayload>;
 
+// ─── 리텐션 운영 콘솔 (Campaign / Photo Battle / Hidden Tip / Checkin / Region / Retention Stats) ───
+
+export interface Campaign {
+  campaignId: number;
+  title: string;
+  description: string | null;
+  bannerImageUrl: string | null;
+  targetTags: string | null;
+  badgeKey: string | null;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;
+  isActive: boolean;
+  status: 'ACTIVE' | 'DELETED';
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CampaignCreatePayload {
+  title: string;
+  description?: string | null;
+  bannerImageUrl?: string | null;
+  targetTags?: string | null;
+  badgeKey?: string | null;
+  startDate: string;
+  endDate: string;
+  isActive?: boolean;
+}
+
+export type CampaignUpdatePayload = Partial<CampaignCreatePayload>;
+
+export type PhotoBattleStatus = 'OPEN' | 'CLOSED';
+
+export interface PhotoBattleCandidate {
+  articleId: number;
+  title: string | null;
+  userId: number | null;
+  voteCount: number;
+}
+
+export interface PhotoBattleListItem {
+  battleId: number;
+  articleAId: number;
+  articleBId: number;
+  spotKey: string;
+  status: PhotoBattleStatus;
+  endAt: string;
+  totalVotes: number;
+  createdAt: string;
+}
+
+export interface PhotoBattleDetail {
+  battleId: number;
+  spotKey: string;
+  status: PhotoBattleStatus;
+  endAt: string;
+  createdAt: string;
+  candidateA: PhotoBattleCandidate;
+  candidateB: PhotoBattleCandidate;
+  totalVotes: number;
+}
+
+export interface PhotoBattleCreatePayload {
+  articleAId: number;
+  articleBId: number;
+  spotKey: string;
+  endAt?: string | null;
+}
+
+export interface HiddenTip {
+  tipId: number;
+  articleId: number;
+  userId: number;
+  title: string;
+  content: string;
+  spotLabel: string | null;
+  status: 'ACTIVE' | 'DELETED';
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface HiddenTipUpdatePayload {
+  title?: string;
+  content?: string;
+  spotLabel?: string | null;
+}
+
+export type CrowdLevel = 'QUIET' | 'NORMAL' | 'CROWDED';
+
+export interface Checkin {
+  checkinId: number;
+  articleId: number;
+  userId: number;
+  crowdLevel: CrowdLevel;
+  message: string | null;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+}
+
+export interface Region {
+  regionId: number;
+  name: string;
+  latMin: number;
+  latMax: number;
+  lngMin: number;
+  lngMax: number;
+  centerLat: number;
+  centerLng: number;
+  displayOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface RegionCreatePayload {
+  name: string;
+  latMin: number;
+  latMax: number;
+  lngMin: number;
+  lngMax: number;
+  centerLat: number;
+  centerLng: number;
+  displayOrder?: number | null;
+  active?: boolean;
+}
+
+export type RegionUpdatePayload = Partial<RegionCreatePayload>;
+
+export interface RetentionLabelCount {
+  label: string;
+  count: number;
+}
+
+export interface RetentionStats {
+  visit: { visited: number; want: number };
+  visitTimeSlot: RetentionLabelCount[];
+  visitSeason: RetentionLabelCount[];
+  checkin: { total: number; quiet: number; normal: number; crowded: number };
+  battle: { open: number; closed: number; totalBattles: number; totalVotes: number };
+  campaign: { activeTotal: number; ongoing: number };
+  pointUse: { count: number; totalAmount: number };
+}
+
 export interface PagedResponseDto<T> {
   data: T[];
   total: number;

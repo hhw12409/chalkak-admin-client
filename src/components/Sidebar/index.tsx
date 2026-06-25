@@ -270,6 +270,56 @@ const menuGroups = [
       },
     ],
   },
+  {
+    name: "리텐션 운영",
+    menuItems: [
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.25 3h13.5v3H2.25V3zm0 4.5h13.5v3H2.25v-3zm0 4.5h9v3h-9v-3z" fill="" />
+          </svg>
+        ),
+        label: "캠페인 관리",
+        route: "/campaigns",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1.5 2.25h6v13.5h-6V2.25zm9 0h6v13.5h-6V2.25zM8.25 7.5h1.5v3h-1.5v-3z" fill="" />
+          </svg>
+        ),
+        label: "사진 배틀 관리",
+        route: "/battles",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.125L11.25 6h5.25l-4.125 3.75L13.5 15 9 12.375 4.5 15l1.125-5.25L1.5 6h5.25L9 1.125z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" fill="none" />
+          </svg>
+        ),
+        label: "히든팁 모더레이션",
+        route: "/hidden-tips",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.5C6.1 1.5 3.75 3.85 3.75 6.75c0 4.13 5.25 9.75 5.25 9.75s5.25-5.62 5.25-9.75C14.25 3.85 11.9 1.5 9 1.5zm0 7.125a1.875 1.875 0 110-3.75 1.875 1.875 0 010 3.75z" fill="" />
+          </svg>
+        ),
+        label: "체크인 모더레이션",
+        route: "/checkins",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.25 2.25h13.5v13.5H2.25V2.25zm1.5 1.5v10.5h10.5V3.75H3.75zm2.25 2.25h6v1.5h-6V6zm0 3h6v1.5h-6V9z" fill="" />
+          </svg>
+        ),
+        label: "지역 마스터",
+        route: "/regions",
+      },
+    ],
+  },
 ];
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {

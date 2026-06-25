@@ -1,12 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { dashboardApi } from "@/lib/api/dashboard";
-import { DashboardSummary, DashboardTrend } from "@/types/admin";
+import { DashboardSummary, DashboardTrend, RetentionStats } from "@/types/admin";
 import CardDataStats from "@/components/CardDataStats";
 
 export default function AdminDashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [trend, setTrend] = useState<DashboardTrend | null>(null);
+  const [retention, setRetention] = useState<RetentionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -18,6 +19,11 @@ export default function AdminDashboard() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    // 리텐션 통계는 OPERATOR↑ 전용 — 실패해도 대시보드 본문은 계속 노출(섹션만 숨김).
+    dashboardApi
+      .getRetention()
+      .then((r) => setRetention(r))
+      .catch(() => setRetention(null));
   }, []);
 
   if (loading) {
@@ -121,6 +127,101 @@ export default function AdminDashboard() {
           <TrendCard title="신규 사용자 추이 (7일)" data={trend.userTrend} color="#3056D3" />
           <TrendCard title="신규 게시글 추이 (7일)" data={trend.articleTrend} color="#10B981" />
         </div>
+      )}
+
+      {retention && (
+        <div className="mt-10">
+          <h2 className="mb-1 text-xl font-bold text-black dark:text-white">리텐션 통계</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            방문·체크인·배틀·캠페인·포인트 사용 현황 (OPERATOR 이상 조회)
+          </p>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 2xl:gap-7.5">
+            <CardDataStats title="방문(VISITED)" total={retention.visit.visited.toLocaleString()} rate="">
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="찜(WANT)" total={retention.visit.want.toLocaleString()} rate="">
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="체크인 총수" total={retention.checkin.total.toLocaleString()} rate="">
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="진행중 캠페인" total={retention.campaign.ongoing.toLocaleString()} rate={`전체 ${retention.campaign.activeTotal}`}>
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="OPEN 배틀" total={retention.battle.open.toLocaleString()} rate={`전체 ${retention.battle.totalBattles}`}>
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="배틀 총 투표" total={retention.battle.totalVotes.toLocaleString()} rate="">
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="포인트 USE 합계" total={retention.pointUse.totalAmount.toLocaleString()} rate={`${retention.pointUse.count}건`}>
+              {retentionIcon}
+            </CardDataStats>
+            <CardDataStats title="CLOSED 배틀" total={retention.battle.closed.toLocaleString()} rate="">
+              {retentionIcon}
+            </CardDataStats>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <DistributionCard title="방문 시간대 분포" data={retention.visitTimeSlot} color="#3056D3" />
+            <DistributionCard title="방문 계절 분포" data={retention.visitSeason} color="#F59E0B" />
+            <DistributionCard
+              title="혼잡도 분포"
+              data={[
+                { label: "QUIET", count: retention.checkin.quiet },
+                { label: "NORMAL", count: retention.checkin.normal },
+                { label: "CROWDED", count: retention.checkin.crowded },
+              ]}
+              color="#EF4444"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const retentionIcon = (
+  <svg className="fill-primary" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 18h2.5v-7H3v7zm5 0h2.5V8H8v10zm5 0h2.5V5H13v13zm5 0H20.5V2H18v16z" fill="" />
+  </svg>
+);
+
+function DistributionCard({
+  title,
+  data,
+  color,
+}: {
+  title: string;
+  data: { label: string; count: number }[];
+  color: string;
+}) {
+  const total = data.reduce((acc, d) => acc + d.count, 0);
+  return (
+    <div className="rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
+      <h3 className="mb-4 text-sm font-semibold text-black dark:text-white">{title}</h3>
+      {data.length === 0 ? (
+        <p className="text-sm text-gray-400">데이터 없음</p>
+      ) : (
+        <ul className="space-y-3">
+          {data.map((d) => {
+            const pct = total > 0 ? Math.round((d.count / total) * 100) : 0;
+            return (
+              <li key={d.label}>
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="font-medium text-black dark:text-white">{d.label}</span>
+                  <span className="text-gray-500">
+                    {d.count.toLocaleString()} ({pct}%)
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded bg-gray-200 dark:bg-meta-4">
+                  <div className="h-full rounded" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
