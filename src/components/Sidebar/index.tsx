@@ -318,6 +318,15 @@ const menuGroups = [
         label: "지역 마스터",
         route: "/regions",
       },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 14h2.5v-5H2v5zm4 0h2.5V7H6v7zm4 0h2.5V4H10v10zm4 0h2.5V1H14v13zM1 16.5v.5h16v-.5H1z" fill="" />
+          </svg>
+        ),
+        label: "활발한 탐험가 기준",
+        route: "/active-explorer-config",
+      },
     ],
   },
 ];

@@ -737,3 +737,25 @@ export interface PagedResponseDto<T> {
   hasNext: boolean;
   hasPrev: boolean;
 }
+
+export interface ActiveExplorerConfig {
+  configId: number;
+  weightPost: number;
+  weightVisit: number;
+  weightCheckin: number;
+  weightLike: number;
+  weightComment: number;
+  windowDays: number;
+  resultSize: number;
+  updatedAt: string | null;
+}
+
+export interface ActiveExplorerConfigUpdatePayload {
+  weightPost: number;
+  weightVisit: number;
+  weightCheckin: number;
+  weightLike: number;
+  weightComment: number;
+  windowDays: number;
+  resultSize: number;
+}
