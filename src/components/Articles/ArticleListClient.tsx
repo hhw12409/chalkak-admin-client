@@ -984,6 +984,7 @@ export default function ArticleListClient({ initialArticleId }: { initialArticle
                   <Link
                     href={`/users/${authorModalData.userId}`}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="rounded bg-primary px-3 py-1.5 text-sm text-white hover:bg-opacity-90"
                   >
                     사용자 페이지로 이동

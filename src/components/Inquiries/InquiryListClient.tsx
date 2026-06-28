@@ -173,7 +173,7 @@ export default function InquiryListClient() {
                 <p className="mb-2 text-xs font-medium text-gray-500">첨부 이미지</p>
                 <div className="flex flex-wrap gap-2">
                   {detailModal.inquiryImages.split(",").map((url, i) => (
-                    <a key={i} href={url.trim()} target="_blank" rel="noreferrer">
+                    <a key={i} href={url.trim()} target="_blank" rel="noopener noreferrer">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={url.trim()}

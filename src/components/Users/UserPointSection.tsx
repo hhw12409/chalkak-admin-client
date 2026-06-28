@@ -21,6 +21,7 @@ const sourceLabelMap: Record<PointSource, string> = {
   ATTENDANCE: "출석체크",
   MISSION_CLAIM: "미션 보상",
   STREAK_BONUS: "연속 출석",
+  STREAK_PROTECTION_PURCHASE: "스트릭 보호권 구매",
   ADMIN_GRANT: "관리자 적립",
   ADMIN_REVOKE: "관리자 차감",
 };

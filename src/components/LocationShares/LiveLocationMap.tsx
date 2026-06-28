@@ -15,7 +15,7 @@ interface Props {
 
 const KAKAO_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
 const SDK_SRC = (key: string) =>
-  `//dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false`;
+  `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false`;
 
 /**
  * 실시간 위치 지도 뷰어.
@@ -93,9 +93,13 @@ export default function LiveLocationMap({ lat, lng, label }: Props) {
       });
       const marker = new kakao.maps.Marker({ position: center });
       marker.setMap(map);
-      const infowindow = new kakao.maps.InfoWindow({
-        content: `<div style="padding:4px 8px;font-size:12px;white-space:nowrap;">${label}</div>`,
-      });
+      // C-1 (stored-XSS 차단): label은 사용자 제어 닉네임이므로 문자열 보간 대신
+      // DOM API로 구성한다. textContent는 HTML로 파싱되지 않아 InfoWindow를 통한
+      // raw-HTML 인젝션(<img onerror=...> 등)을 원천 차단한다.
+      const infoEl = document.createElement("div");
+      infoEl.style.cssText = "padding:4px 8px;font-size:12px;white-space:nowrap;";
+      infoEl.textContent = label;
+      const infowindow = new kakao.maps.InfoWindow({ content: infoEl });
       infowindow.open(map, marker);
     } catch {
       setSdkState("failed");

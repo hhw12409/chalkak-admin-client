@@ -459,6 +459,7 @@ export type PointSource =
   | 'ATTENDANCE'
   | 'MISSION_CLAIM'
   | 'STREAK_BONUS'
+  | 'STREAK_PROTECTION_PURCHASE'
   | 'ADMIN_GRANT'
   | 'ADMIN_REVOKE';
 

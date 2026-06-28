@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/auth/signin', '/auth/signup'];
+const PUBLIC_PATHS = ['/auth/signin'];
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('admin_token')?.value;
