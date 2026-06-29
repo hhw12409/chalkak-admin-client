@@ -107,7 +107,7 @@ export default function GeoQuizFeaturedArticleClient() {
             onClick={() => setShowCreate(true)}
             className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-opacity-90"
           >
-            + 출제 지정 등록
+            + 출제 지정 등록 (일괄)
           </button>
         )}
       </div>

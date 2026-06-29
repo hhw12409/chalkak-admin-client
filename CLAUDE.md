@@ -69,6 +69,7 @@ Components that depend on browser APIs (`MapOne`, `ChartThree`) are imported wit
 - `src/types/admin.ts` (확장), `src/components/Sidebar/index.tsx` (확장) — 사이드바 "리텐션 운영" 그룹에 4메뉴 추가
 - 변경 액션(설정 저장·블록 등록/해제·점수 정정·삭제)은 `useAuth().admin.role === "ADMIN"`만 노출, OPERATOR/VIEWER 읽기 전용
 - **출제 관리 2탭 확장 (2026-06-29)** — `/geo-quiz/excluded-articles`를 "출제 관리"로 확장: "출제 제외"(블록) / "출제 지정"(featured 큐레이션) 2탭(`GeoQuizArticleManageClient` 래퍼 + `GeoQuizFeaturedArticleClient` + `GeoQuizFeaturedCreateModal`). 출제 지정에 **큐레이션 모드 활성 배너**(지정 적격 글 1개라도 있으면 그 목록 안에서만 출제, 비면 자동 풀, 블록 우선). `lib/api/geoQuiz.ts` featured 3함수(`listFeatured/createFeatured/removeFeatured`), `GeoQuizFeaturedArticle` 타입. 라우트·사이드바 불변
+- **출제 지정 bulk 일괄 등록 (2026-06-29):** `GeoQuizFeaturedCreateModal` 재작성 — 단건 articleId 입력 → **다건 ID 입력(쉼표·공백·줄바꿈 구분, 비숫자 토큰 무시·중복 자동 제거·최대 200건) + 공통 사유 1개**. `geoQuizApi.createFeaturedBulk({items:[{articleId,reason?}]})` 호출 후 모달 내 결과 요약(등록/이미 등록/실패 카운트 + skip ID 목록 + 실패 항목 메시지) 표시. `GeoQuizFeaturedBulkResult` 타입 추가. 단건 `createFeatured`는 하위호환 보존. 부모 버튼 라벨 "+ 출제 지정 등록 (일괄)"
 
 ### 인기검색어 수정/긴급삭제 (2026-06-01)
 

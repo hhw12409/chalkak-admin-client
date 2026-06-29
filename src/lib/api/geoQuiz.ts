@@ -4,6 +4,7 @@ import {
   GeoQuizConfigUpdatePayload,
   GeoQuizExcludedArticle,
   GeoQuizFeaturedArticle,
+  GeoQuizFeaturedBulkResult,
   GeoQuizPlay,
   GeoQuizPlayDetail,
   GeoQuizStats,
@@ -47,6 +48,15 @@ export const geoQuizApi = {
   /** 출제 지정 등록 (ADMIN 전용). */
   createFeatured: (payload: { articleId: number; reason?: string }) =>
     request<GeoQuizFeaturedArticle>('/geo-quiz/featured-articles', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /** 출제 지정 일괄 등록 (ADMIN 전용). 부분 실패 허용 — created/skipped/failed 요약 반환. */
+  createFeaturedBulk: (payload: {
+    items: { articleId: number; reason?: string }[];
+  }) =>
+    request<GeoQuizFeaturedBulkResult>('/geo-quiz/featured-articles/bulk', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),

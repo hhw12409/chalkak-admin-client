@@ -795,6 +795,17 @@ export interface GeoQuizFeaturedArticle {
   createdAt: string;
 }
 
+/** 출제 지정 bulk 등록 결과 요약 (부분 실패 허용). */
+export interface GeoQuizFeaturedBulkResult {
+  requested: number;
+  created: number;
+  skipped: number;
+  failed: number;
+  createdItems: GeoQuizFeaturedArticle[];
+  skippedArticleIds: number[];
+  failedItems: { articleId: number | null; message: string }[];
+}
+
 export interface GeoQuizGuess {
   guessId: number;
   articleId: number;
