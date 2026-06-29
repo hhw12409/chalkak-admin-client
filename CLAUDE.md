@@ -61,6 +61,14 @@ Components that depend on browser APIs (`MapOne`, `ChartThree`) are imported wit
 
 ## 구현 이력
 
+### 포토 어디게 게임 운영 (2026-06-29)
+
+- `src/app/geo-quiz/{config,excluded-articles,stats,plays}/page.tsx` (신규) — 게임 설정·출제 제외 블록리스트·통계 대시보드·플레이 데이터 관리 4페이지
+- `src/components/GeoQuiz/*` (신규 8개) — `GeoQuizConfigClient`(보상포인트·감쇠상수·MAX점수·문항수 폼), `GeoQuizExcludedArticleClient`+`GeoQuizExcludedCreateModal`, `GeoQuizStatsClient`(요약카드+일별추이바+일별랭킹), `GeoQuizPlayClient`+상세/점수정정/삭제 모달
+- `src/lib/api/geoQuiz.ts` (신규) — admin-server geoQuiz 엔드포인트 10개 매핑
+- `src/types/admin.ts` (확장), `src/components/Sidebar/index.tsx` (확장) — 사이드바 "리텐션 운영" 그룹에 4메뉴 추가
+- 변경 액션(설정 저장·블록 등록/해제·점수 정정·삭제)은 `useAuth().admin.role === "ADMIN"`만 노출, OPERATOR/VIEWER 읽기 전용
+
 ### 인기검색어 수정/긴급삭제 (2026-06-01)
 
 - `src/components/Keywords/PopularKeywordEditModal.tsx` (신규) — 키워드/순위 수정 폼 모달 (ESC·오버레이 닫기)

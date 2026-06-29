@@ -760,3 +760,77 @@ export interface ActiveExplorerConfigUpdatePayload {
   windowDays: number;
   resultSize: number;
 }
+
+// ---- 포토 어디게 (GeoQuiz) 운영 콘솔 ----
+
+export interface GeoQuizConfig {
+  configId: number;
+  rewardPoint: number;
+  decayKm: number;
+  maxScore: number;
+  dailyQuestionCount: number;
+  updatedAt: string | null;
+}
+
+export interface GeoQuizConfigUpdatePayload {
+  rewardPoint?: number;
+  decayKm?: number;
+  maxScore?: number;
+  dailyQuestionCount?: number;
+}
+
+export interface GeoQuizExcludedArticle {
+  excludedId: number;
+  articleId: number;
+  reason: string | null;
+  createdBy: number | null;
+  createdAt: string;
+}
+
+export interface GeoQuizGuess {
+  guessId: number;
+  articleId: number;
+  questionOrder: number;
+  guessLat: number;
+  guessLng: number;
+  distanceMeters: number;
+  score: number;
+}
+
+export interface GeoQuizPlay {
+  playId: number;
+  userId: number;
+  playDate: string;
+  totalScore: number;
+  questionCount: number;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface GeoQuizPlayDetail extends GeoQuizPlay {
+  guesses: GeoQuizGuess[];
+}
+
+export interface GeoQuizDailyRankingItem {
+  rank: number;
+  userId: number;
+  nickname: string | null;
+  totalScore: number;
+}
+
+export interface GeoQuizStats {
+  summary: {
+    totalPlays: number;
+    uniquePlayers: number;
+    avgScore: number;
+    maxScore: number;
+    todayPlays: number;
+  };
+  dailyTrend: {
+    date: string;
+    plays: number;
+    uniquePlayers: number;
+    avgScore: number;
+  }[];
+  dailyRanking: GeoQuizDailyRankingItem[];
+}

@@ -327,6 +327,42 @@ const menuGroups = [
         label: "활발한 탐험가 기준",
         route: "/active-explorer-config",
       },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.5a5.25 5.25 0 00-5.25 5.25c0 3.94 5.25 9.75 5.25 9.75s5.25-5.81 5.25-9.75A5.25 5.25 0 009 1.5zm0 7.125a1.875 1.875 0 110-3.75 1.875 1.875 0 010 3.75z" fill="" />
+          </svg>
+        ),
+        label: "포토 어디게 설정",
+        route: "/geo-quiz/config",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2.25 3.75h13.5v10.5H2.25V3.75zm1.5 1.5v7.5h10.5v-7.5H3.75zm9.97 1.28l-4.22 4.22-1.97-1.97-1.06 1.06 3.03 3.03 5.28-5.28-1.06-1.06z" fill="" />
+          </svg>
+        ),
+        label: "포토 어디게 출제 관리",
+        route: "/geo-quiz/excluded-articles",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 14h2.5v-5H2v5zm4 0h2.5V7H6v7zm4 0h2.5V4H10v10zm4 0h2.5V1H14v13zM1 16.5v.5h16v-.5H1z" fill="" />
+          </svg>
+        ),
+        label: "포토 어디게 통계",
+        route: "/geo-quiz/stats",
+      },
+      {
+        icon: (
+          <svg className="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 1.125c-2.69 0-4.875 2.185-4.875 4.875 0 1.71.9 3.21 2.25 4.05V16.5L9 14.625 11.625 16.5v-6.45c1.35-.84 2.25-2.34 2.25-4.05 0-2.69-2.185-4.875-4.875-4.875zm0 8.25A3.375 3.375 0 119 2.625a3.375 3.375 0 010 6.75z" fill="" />
+          </svg>
+        ),
+        label: "포토 어디게 플레이 관리",
+        route: "/geo-quiz/plays",
+      },
     ],
   },
 ];
