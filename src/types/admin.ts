@@ -787,6 +787,14 @@ export interface GeoQuizExcludedArticle {
   createdAt: string;
 }
 
+export interface GeoQuizFeaturedArticle {
+  featuredId: number;
+  articleId: number;
+  reason: string | null;
+  createdBy: number | null;
+  createdAt: string;
+}
+
 export interface GeoQuizGuess {
   guessId: number;
   articleId: number;

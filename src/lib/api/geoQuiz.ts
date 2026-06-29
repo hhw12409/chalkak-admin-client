@@ -3,6 +3,7 @@ import {
   GeoQuizConfig,
   GeoQuizConfigUpdatePayload,
   GeoQuizExcludedArticle,
+  GeoQuizFeaturedArticle,
   GeoQuizPlay,
   GeoQuizPlayDetail,
   GeoQuizStats,
@@ -36,6 +37,23 @@ export const geoQuizApi = {
   /** 출제 제외 해제 (ADMIN 전용, 물리 삭제). */
   removeExcluded: (id: number) =>
     request<void>(`/geo-quiz/excluded-articles/${id}`, { method: 'DELETE' }),
+
+  /** 출제 지정(큐레이션 화이트리스트) 목록 (OPERATOR↑). */
+  listFeatured: (params: { page?: number; size?: number }) =>
+    request<PageResponse<GeoQuizFeaturedArticle>>(
+      `/geo-quiz/featured-articles?${buildParams(params)}`,
+    ),
+
+  /** 출제 지정 등록 (ADMIN 전용). */
+  createFeatured: (payload: { articleId: number; reason?: string }) =>
+    request<GeoQuizFeaturedArticle>('/geo-quiz/featured-articles', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /** 출제 지정 해제 (ADMIN 전용, 물리 삭제). */
+  removeFeatured: (id: number) =>
+    request<void>(`/geo-quiz/featured-articles/${id}`, { method: 'DELETE' }),
 
   /** 통계 대시보드 (OPERATOR↑). */
   getStats: (params: { days?: number; date?: string }) =>

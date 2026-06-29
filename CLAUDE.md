@@ -68,6 +68,7 @@ Components that depend on browser APIs (`MapOne`, `ChartThree`) are imported wit
 - `src/lib/api/geoQuiz.ts` (신규) — admin-server geoQuiz 엔드포인트 10개 매핑
 - `src/types/admin.ts` (확장), `src/components/Sidebar/index.tsx` (확장) — 사이드바 "리텐션 운영" 그룹에 4메뉴 추가
 - 변경 액션(설정 저장·블록 등록/해제·점수 정정·삭제)은 `useAuth().admin.role === "ADMIN"`만 노출, OPERATOR/VIEWER 읽기 전용
+- **출제 관리 2탭 확장 (2026-06-29)** — `/geo-quiz/excluded-articles`를 "출제 관리"로 확장: "출제 제외"(블록) / "출제 지정"(featured 큐레이션) 2탭(`GeoQuizArticleManageClient` 래퍼 + `GeoQuizFeaturedArticleClient` + `GeoQuizFeaturedCreateModal`). 출제 지정에 **큐레이션 모드 활성 배너**(지정 적격 글 1개라도 있으면 그 목록 안에서만 출제, 비면 자동 풀, 블록 우선). `lib/api/geoQuiz.ts` featured 3함수(`listFeatured/createFeatured/removeFeatured`), `GeoQuizFeaturedArticle` 타입. 라우트·사이드바 불변
 
 ### 인기검색어 수정/긴급삭제 (2026-06-01)
 
